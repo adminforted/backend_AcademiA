@@ -14,12 +14,11 @@ import crud
 import auth
 
 from Routes import  routes_docentes, attendance_estudiantes
-from Routes import routes_notas
 
 from Routes.routes_materias import router as materias_router
 from Routes.routes_periodos import router as periodos_router
 from Routes.routes_estudiantes import router as routes_estudiantes
-
+from Routes.routes_notas import router as notas_router
 
 from auth import send_email, get_password_hash, generate_token
 
@@ -65,16 +64,9 @@ app = FastAPI(
 )
 
 
-
-
-
 # Create table database
 # ase.metadata.create_all(bind=engine)
 
-# Creamos la instancia de la aplicación FastAPI
-app = FastAPI()
-# Para que el acceso sea publico 
-# origin = ['*']
 
 # Rutas de autenticación definidas en auth.py
 app.include_router(auth.router, prefix="/api", tags=["Autenticación"])
@@ -84,15 +76,20 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
 # INCLUIR ROUTERS CON EL OBJETO 'router' DE CADA ARCHIVO
 #   Endpoint para listar alumnos: http://localhost:8000/api/estudiantes/
-app.include_router(routes_estudiantes, prefix="/api/estudiantes", tags=["Estudiantes"])
+app.include_router(
+    routes_estudiantes, 
+    prefix="/api/estudiantes", 
+    tags=["Estudiantes"]
+    )
+
+app.include_router(notas_router, prefix="/api", tags=["Notas"])
 
 app.include_router(routes_docentes.router, prefix="/api/docentes", tags=["Docentes"]) 
 
 app.include_router(attendance_estudiantes.router, prefix="/api", tags=["Asistencias"])
 
-app.include_router(routes_notas.router)
-
 app.include_router(materias_router, prefix="/api/materias", tags=["Materias"])
+
 app.include_router(periodos_router, prefix="/api/periodos", tags=["Períodos"])
 
 
@@ -127,7 +124,7 @@ def get_db():
 # Ruta raiz
 @app.get("/")
 def root():
-    return 'iniciando api...'
+    return 'iniciando api... - ESTOY EN LA CARPETA CORRECTA - V2'
 
 # Registro
 @app.post("/api/register", response_model=UserAuthData)
@@ -202,300 +199,6 @@ async def get_entidad(entidad_id: int, current_user: UserAuthData = Depends(auth
     entidad.tipos_entidad = entidad.tipos_entidad.split(',') if entidad.tipos_entidad else []
     return entidad
 
-
-   
-#   # ==================== ENDPOINTS ESTUDIANTES ====================
-#   
-#   @app.get("/api/estudiantes", response_model=list[EstudianteResponse])
-#   async def get_estudiantes(db: Session = Depends(get_db)):
-#       
-#       print("\n" + "="*60)
-#       print("ENDPOINT DE ESTUDIANTES EJECUTÁNDOSE CORRECTAMENTE")
-#       print("="*60)
-#       
-#       # 1. Información de conexión y tabla
-#       print(f"Base de datos conectada → {db.bind.url}")
-#       print(f"Tabla usada → {EntidadORM.__tablename__}")
-#       print("-"*60)
-#   
-#   
-#       # Buscamos entidades que tengan 'ALU' en sus tipos_entidad
-#       estudiantes_db = db.query(EntidadORM).filter(
-#           EntidadORM.tipos_entidad.contains("ALU"),
-#           EntidadORM.apellido != "",
-#           EntidadORM.deleted_at.is_(None)
-#           
-#       ).all()
-#       
-#       # Mapeamos a EstudianteResponse
-#       estudiantes = []
-#       for est in estudiantes_db:
-#           estudiantes.append(EstudianteResponse(
-#               id=est.id_entidad,
-#               name=f"{est.apellido}, {est.nombre}".strip(),
-#               nombre=est.nombre,       # Asignamos nombre
-#               apellido=est.apellido,   # Asignamos apellido
-#               fec_nac=est.fec_nac,     # Asignamos fecha de nacimiento
-#               email=est.email,
-#               domicilio=est.domicilio,
-#               telefono=est.telefono
-#           ))
-#       return estudiantes
-#   
-#   @app.get("/api/estudiantes/{id}", response_model=EstudianteResponse)
-#   async def get_estudiante(id: int, db: Session = Depends(get_db)):
-#       est = db.query(EntidadORM).filter(
-#           EntidadORM.id_entidad == id,
-#           EntidadORM.tipos_entidad.contains("ALU"),
-#           EntidadORM.deleted_at.is_(None)
-#       ).first()
-#       
-#       if not est:
-#           raise HTTPException(status_code=404, detail="Estudiante no encontrado")
-#       
-#       return EstudianteResponse(
-#           id=est.id_entidad,
-#           name=f"{est.apellido}, {est.nombre}".strip(),
-#           nombre=est.nombre,
-#           apellido=est.apellido,
-#           fec_nac=est.fec_nac,
-#           email=est.email,
-#           domicilio=est.domicilio,
-#           telefono=est.telefono
-#       )
-#   
-#   @app.post("/api/estudiantes/", response_model=EstudianteResponse)
-#   async def create_estudiante(estudiante: EstudianteCreate, db: Session = Depends(get_db)):
-#       # Verificar si el email ya existe (solo si se proporciona)
-#       if estudiante.email and db.query(Entidad).filter(Entidad.email == estudiante.email).first():
-#           raise HTTPException(status_code=400, detail="El email ya está registrado")
-#       
-#       # Separar nombre y apellido
-#       # parts = estudiante.name.split(' ', 1)
-#       # nombre = parts[0]
-#       # apellido = parts[1] if len(parts) > 1 else ""
-#       
-#   
-#       new_estudiante = Entidad(
-#           nombre=estudiante.nombre.strip(),
-#           apellido=estudiante.apellido.strip(),
-#           email=estudiante.email,
-#           fec_nac=estudiante.fec_nac,
-#           domicilio=estudiante.domicilio,
-#           telefono=estudiante.telefono,
-#           tipos_entidad="ALU"
-#       )
-#       
-#       db.add(new_estudiante)
-#       db.commit()
-#       db.refresh(new_estudiante)
-#       
-#       return EstudianteResponse(
-#           id=new_estudiante.id_entidad,
-#           name=f"{new_estudiante.apellido} {new_estudiante.nombre}".strip(),
-#           nombre=new_estudiante.nombre,
-#           apellido=new_estudiante.apellido,
-#           fec_nac=new_estudiante.fec_nac,
-#           email=new_estudiante.email,
-#           domicilio=new_estudiante.domicilio,
-#           telefono=new_estudiante.telefono
-#       )
-#   
-#   @app.put("/api/estudiantes/{id}", response_model=EstudianteResponse)
-#   async def update_estudiante(id: int, estudiante: EstudianteUpdate, db: Session = Depends(get_db)):
-#       db_estudiante = db.query(Entidad).filter(Entidad.id_entidad == id).first()
-#       
-#       if not db_estudiante:
-#           raise HTTPException(status_code=404, detail="Estudiante no encontrado")
-#       
-#       # Actualizar solo los campos que vengan
-#       if estudiante.nombre is not None:
-#           db_estudiante.nombre= estudiante.nombre.strip()
-#       if estudiante.apellido is not None:
-#           db_estudiante.apellido= estudiante.apellido.strip()
-#       if estudiante.email is not None:
-#           db_estudiante.email = estudiante.email
-#       if estudiante.fec_nac is not None:
-#           db_estudiante.fec_nac = estudiante.fec_nac
-#       if estudiante.domicilio is not None:
-#           db_estudiante.domicilio = estudiante.domicilio
-#       if estudiante.telefono is not None:
-#           db_estudiante.telefono = estudiante.telefono
-#           
-#       db.commit()
-#       db.refresh(db_estudiante)
-#       
-#       return EstudianteResponse(
-#           id=db_estudiante.id_entidad,
-#           name=f"{db_estudiante.nombre} {db_estudiante.apellido}".strip(),
-#           nombre=db_estudiante.nombre,
-#           apellido=db_estudiante.apellido,
-#           fec_nac=db_estudiante.fec_nac,
-#           email=db_estudiante.email,
-#           domicilio=db_estudiante.domicilio,
-#           telefono=db_estudiante.telefono
-#       )
-#   
-#   @app.delete("/api/estudiantes/{id}")
-#   async def delete_estudiante(id: int, db: Session = Depends(get_db)):
-#       db_estudiante = db.query(Entidad).filter(Entidad.id_entidad == id).first()
-#       
-#       if not db_estudiante:
-#           raise HTTPException(status_code=404, detail="Estudiante no encontrado")
-#       
-#       db.delete(db_estudiante)
-#       db.commit()
-#       
-#       return {"message": "Estudiante eliminado exitosamente"}
-#   
-#   # ==================== ENDPOINTS DOCENTES ====================
-#   
-#   @app.get("/api/docentes", response_model=list[DocenteResponse])
-#   async def get_docentes(db: Session = Depends(get_db)):
-#       
-#       print("\n" + "="*60)
-#       print("ENDPOINT DE DOCENTES EJECUTÁNDOSE CORRECTAMENTE")
-#       print("="*60)
-#       
-#       # 1. Información de conexión y tabla
-#       print(f"Base de datos conectada → {db.bind.url}")
-#       print(f"Tabla usada → {EntidadORM.__tablename__}")
-#       print("-"*60)
-#   
-#   
-#       # Buscamos entidades que tengan 'DOC' en sus tipos_entidad
-#       docentes_db = db.query(EntidadORM).filter(
-#           EntidadORM.tipos_entidad.contains("DOC"),
-#           EntidadORM.apellido != "",
-#           EntidadORM.deleted_at.is_(None)
-#           
-#       ).all()
-#       
-#       # Mapeamos a DocentesResponse
-#       docentes = []
-#       for doc in docentes_db:
-#           docentes.append(DocenteResponse(
-#               id=doc.id_entidad,
-#               name=f"{doc.apellido}, {doc.nombre}".strip(),
-#               nombre=doc.nombre,       # Asignamos nombre
-#               apellido=doc.apellido,   # Asignamos apellido
-#               fec_nac=doc.fec_nac,     # Asignamos fecha de nacimiento
-#               email=doc.email,
-#               domicilio=doc.domicilio,
-#               telefono=doc.telefono
-#           ))
-#       return docentes
-#   
-#   @app.get("/api/docentes/{id}", response_model=DocenteResponse)
-#   async def get_docente(id: int, db: Session = Depends(get_db)):
-#       doc = db.query(Entidad).filter(
-#           Entidad.id_entidad == id,
-#           Entidad.tipos_entidad.contains("DOC"),
-#           Entidad.deleted_at.is_(None)
-#       ).first()
-#       
-#       if not doc:
-#           raise HTTPException(status_code=404, detail="Docente no encontrado")
-#       
-#       return DocenteResponse(
-#           id=doc.id_entidad,
-#           name=f"{doc.apellido}, {doc.nombre}".strip(),
-#           nombre=doc.nombre,
-#           apellido=doc.apellido,
-#           fec_nac=doc.fec_nac,
-#           email=doc.email,
-#           domicilio=doc.domicilio,
-#           telefono=doc.telefono
-#       )
-#   
-#   @app.post("/api/docentes/", response_model=DocenteResponse)
-#   async def create_docente(docente: DocenteCreate, db: Session = Depends(get_db)):
-#   
-#   
-#       # Verificar si el email ya existe (solo si se proporciona)
-#       if docente.email and db.query(Entidad).filter(Entidad.email == docente.email).first():
-#           raise HTTPException(status_code=400, detail="El email ya está registrado")
-#       
-#       # Separar nombre y apellido
-#       # parts = estudiante.name.split(' ', 1)
-#       # nombre = parts[0]
-#       # apellido = parts[1] if len(parts) > 1 else ""
-#       
-#   
-#       new_docente = Entidad(
-#           nombre=docente.nombre.strip(),
-#           apellido=docente.apellido.strip(),
-#           email=docente.email,
-#           fec_nac=docente.fec_nac,
-#           domicilio=docente.domicilio,
-#           telefono=docente.telefono,
-#           tipos_entidad="DOC"
-#       )
-#       
-#       db.add(new_docente)
-#       db.commit()
-#       db.refresh(new_docente)
-#       
-#       return DocenteResponse(
-#           id=new_docente.id_entidad,
-#           name=f"{new_docente.apellido} {new_docente.nombre}".strip(),
-#           nombre=new_docente.nombre,
-#           apellido=new_docente.apellido,
-#           fec_nac=new_docente.fec_nac,
-#           email=new_docente.email,
-#           domicilio=new_docente.domicilio,
-#           telefono=new_docente.telefono
-#       )
-#   
-#   @app.put("/api/docentes/{id}", response_model=DocenteResponse)
-#   async def update_docente(id: int, docente: DocenteUpdate, db: Session = Depends(get_db)):
-#       db_docente = db.query(Entidad).filter(Entidad.id_entidad == id).first()
-#       
-#       if not db_docente:
-#           raise HTTPException(status_code=404, detail="Docente no encontrado")
-#       
-#       # Actualizar solo los campos que vengan
-#       if docente.nombre is not None:
-#           db_docente.nombre= docente.nombre.strip()
-#       if docente.apellido is not None:
-#           db_docente.apellido= docente.apellido.strip()
-#       if docente.email is not None:
-#           db_docente.email = docente.email
-#       if docente.fec_nac is not None:
-#           db_docente.fec_nac = docente.fec_nac
-#       if docente.domicilio is not None:
-#           db_docente.domicilio = docente.domicilio
-#       if docente.telefono is not None:
-#           db_docente.telefono = docente.telefono
-#           
-#       db.commit()
-#       db.refresh(db_docente)
-#       
-#       return DocenteResponse(
-#           id=db_docente.id_entidad,
-#           name=f"{db_docente.nombre} {db_docente.apellido}".strip(),
-#           nombre=db_docente.nombre,
-#           apellido=db_docente.apellido,
-#           fec_nac=db_docente.fec_nac,
-#           email=db_docente.email,
-#           domicilio=db_docente.domicilio,
-#           telefono=db_docente.telefono
-#       )
-#   
-#   @app.delete("/api/docentes/{id}")
-#   async def delete_docente(id: int, db: Session = Depends(get_db)):
-#       db_docente = db.query(Entidad).filter(Entidad.id_entidad == id).first()
-#       
-#       if not db_docente:
-#           raise HTTPException(status_code=404, detail="Docente no encontrado")
-#       
-#       db.delete(db_docente)
-#       db.commit()
-#       
-#       return {"message": "Docente eliminado exitosamente"}
-#   
-#   
-
 # ==================== MIGRACIÓN DE BASE DE DATOS ====================
 from sqlalchemy import text
 
@@ -536,4 +239,16 @@ async def migrate_db(db: Session = Depends(get_db)):
         return {"error": str(e)}
     
 
-  
+print("🔍 --- REVISIÓN DE RUTAS REGISTRADAS ---")
+for route in app.routes:
+    if hasattr(route, "path"):
+        print(f"Ruta: {route.path} | Nombre: {route.name}")
+print("🔍 ------------------------------------")
+
+# Al final de todo en main.py
+print("\n" + "="*50)
+print("SISTEMA DE RUTAS ACTIVAS")
+for route in app.routes:
+    print(f"URL: {route.path} --> Name: {route.name}")
+print("="*50 + "\n")
+

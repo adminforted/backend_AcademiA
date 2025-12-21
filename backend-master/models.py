@@ -226,21 +226,21 @@ class Inasistencia(Base):
 class Periodo(Base):
     __tablename__ = "t_periodo"
     
-    id_periodo = Column(Integer, primary_key=True, index=True)
-    descripcion = Column(String(50), nullable=False) # Ej: "1er Trimestre", "Final"
-    created_at = Column(DateTime, default=func.current_timestamp())
-    updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+    id_periodo = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    nombre_periodo = Column(String(100), nullable=False)    # Ej: "1er Trimestre", "Final"
+    fecha_inicio_periodo = Column(Date, nullable=False)
+    fecha_fin_periodo = Column(Date, nullable=False)
+    # created_at = Column(DateTime, default=func.current_timestamp())
+    # updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 # Modelo para la tabla t_tipo_nota
 class TipoNota(Base):
     __tablename__ = "t_tipo_nota"
     
-    id_tipo_nota = Column(Integer, primary_key=True, index=True)
-    descripcion = Column(String(50), nullable=False) # Ej: "Calificación Normal", "Recuperatorio"
+    id_tipo_nota = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    tipo_nota = Column(String(20), nullable=False) # Ej: "Calificación Normal", "Recuperatorio"
     created_at = Column(DateTime, default=func.current_timestamp())
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
-
-
 
 
 # ----------------------------------------------------------------------------------
@@ -248,7 +248,7 @@ class TipoNota(Base):
 # ----------------------------------------------------------------------------------
 
 # Modelo para la tabla t_nota
-class TNota(Base):
+class Nota(Base):
     __tablename__ = "t_nota"
     
     # Clave primaria (Auto-generada)

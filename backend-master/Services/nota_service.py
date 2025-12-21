@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import date
 # Ajusta estas importaciones si tus archivos de esquema y modelos están en la raíz
 from schemas import NotaCreate 
-from models import TNota 
+from models import Nota 
 from database import localSession
 
 
@@ -13,13 +13,13 @@ from database import localSession
 ID_ENTIDAD_CARGA_DEFAULT = 2  
 ID_TIPO_NOTA_DEFAULT = 1      
 
-def crear_nota_individual(db: Session, nota_data: NotaCreate) -> TNota:
+def crear_nota_individual(db: Session, nota_data: NotaCreate) -> Nota:
     """Función de servicio para ejecutar la inserción de una nota."""
     
     fecha_actual = date.today()
     
     # Mapear los datos de entrada al Modelo ORM
-    db_nota = TNota(
+    db_nota = Nota(
         id_materia=nota_data.id_materia,
         id_entidad_estudiante=nota_data.id_entidad_estudiante,
         nota=nota_data.nota,

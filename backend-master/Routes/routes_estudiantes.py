@@ -44,40 +44,40 @@ def get_db():
  # ==================== ENDPOINTS ESTUDIANTES ====================
  
 @router.get("/", response_model=list[EstudianteResponse])
-async def get_estudiantes(db: Session = Depends(get_db)):
-     
-     print("\n" + "="*60)
-     print("ENDPOINT DE ESTUDIANTES EJECUTÁNDOSE CORRECTAMENTE")
-     print("="*60)
-     
-     # 1. Información de conexión y tabla
-     print(f"Base de datos conectada → {db.bind.url}")
-     print(f"Tabla usada → {EntidadORM.__tablename__}")
-     print("-"*60)
+async def get_estudiantes(
+    db: Session = Depends(get_db), 
+    current_user: UserAuthData = Depends(get_current_user) # Seguridad activa
+):
+    # 1. Validación de permisos (Solo Admins)
+    if current_user.tipo_rol.tipo_entidad != 'ADMIN_SISTEMA':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="No tienes permisos de administrador."
+        )
+
+    # 2. Consulta a la base de datos
+    estudiantes_db = db.query(EntidadORM).filter(
+        EntidadORM.tipos_entidad.contains("ALU"),
+        EntidadORM.apellido != "",
+        EntidadORM.deleted_at.is_(None)
+    ).all()
+    
+    # 3. Mapeo y entrega de datos
+    return [
+        EstudianteResponse(
+            id=est.id_entidad,
+            name=f"{est.apellido}, {est.nombre}".strip(),
+            nombre=est.nombre,
+            apellido=est.apellido,
+            fec_nac=est.fec_nac,
+            email=est.email,
+            domicilio=est.domicilio,
+            telefono=est.telefono
+        ) for est in estudiantes_db
+    ]
+
+
  
- 
-     # Buscamos entidades que tengan 'ALU' en sus tipos_entidad
-     estudiantes_db = db.query(EntidadORM).join(TipoEntidad).filter(
-         TipoEntidad.tipo_entidad == "ALUMNO",
-         EntidadORM.apellido != "",
-         EntidadORM.deleted_at.is_(None)
-         
-     ).all()
-     
-     # Mapeamos a EstudianteResponse
-     estudiantes = []
-     for est in estudiantes_db:
-         estudiantes.append(EstudianteResponse(
-             id=est.id_entidad,
-             name=f"{est.apellido}, {est.nombre}".strip(),
-             nombre=est.nombre,       # Asignamos nombre
-             apellido=est.apellido,   # Asignamos apellido
-             fec_nac=est.fec_nac,     # Asignamos fecha de nacimiento
-             email=est.email,
-             domicilio=est.domicilio,
-             telefono=est.telefono
-         ))
-     return estudiantes
  
 @router.get("/{id}", response_model=EstudianteResponse)
 async def get_estudiante(id: int, db: Session = Depends(get_db)):
@@ -185,43 +185,6 @@ async def delete_estudiante(id: int, db: Session = Depends(get_db)):
      
      return {"message": "Estudiante eliminado exitosamente"}
 
-
-
-
-
-
-
-@router.get("/", response_model=list[EstudianteResponse])
-async def get_estudiantes(db: Session = Depends(get_db), current_user: UserAuthData = Depends(get_current_user)):
-    # Lógica de permisos
-    if current_user.tipo_rol.tipo_roles_usuarios != 'ADMIN_SISTEMA':
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permisos de administrador.")
-
-    # ... (Resto de la lógica del endpoint de estudiantes que estaba en main.py)
-    
-    # Ejemplo de la consulta:
-    estudiantes_db = db.query(EntidadORM).filter(
-        EntidadORM.tipos_entidad.contains("ALU"),
-        EntidadORM.apellido != "",
-        EntidadORM.deleted_at.is_(None)
-    ).all()
-    
-    # ... (Mapeo a EstudianteResponse)
-    
-    return [
-        EstudianteResponse(
-            # ... (código de mapeo) ...
-            id=est.id_entidad,
-            name=f"{est.apellido}, {est.nombre}".strip(),
-            nombre=est.nombre,
-            apellido=est.apellido,
-            fec_nac=est.fec_nac,
-            email=est.email,
-            domicilio=est.domicilio,
-            telefono=est.telefono
-        ) for est in estudiantes_db
-    ]
-    
 
       # ==================== MATERIAS DE UN ESTUDIANTE ====================
 

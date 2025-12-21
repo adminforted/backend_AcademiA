@@ -1,16 +1,30 @@
 #   backend-master\backend-master\database.py
 
-from sqlalchemy import create_engine  # Importamos create_engine para establecer la conexión con la base de datos
-
-# Importamos declarative_base para definir modelos ORM 
-# from sqlalchemy.ext.declarative import declarative_base   
-# # Se comenta porque Base se define en models.py para evitar dependencias circulares.
-
-from sqlalchemy.orm import sessionmaker  # Importamos sessionmaker para manejar sesiones de la base de datos
-from dotenv import load_dotenv  # Para cargar datos del archivo .env
 import os
+from pathlib import Path
+from dotenv import load_dotenv  # Para cargar datos del archivo .env
+from sqlalchemy import create_engine  # Importamos create_engine para establecer la conexión con la base de datos
+from sqlalchemy.orm import sessionmaker  # Importamos sessionmaker para manejar sesiones de la base de datos
 
-load_dotenv()  # Carga los datos del archivo .env
+# Buscamos el archivo .env en la misma carpeta que este script
+BASE_DIR = Path(__file__).resolve().parent
+env_path = BASE_DIR / ".env"
+
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+    print(f"✅ Archivo .env cargado desde: {env_path}")
+else:
+    print(f"❌ ERROR: No se encontró el archivo .env en: {env_path}")
+
+
+
+# Obtiene la ruta de la carpeta donde está el archivo database.py
+# env_path = Path(__file__).parent / ".env"
+
+# load_dotenv(dotenv_path=env_path)  # Carga los datos del archivo .env
+
+# DEBUG: Para ver si carga en la terminal
+print(f"DEBUG: Conectando a {os.getenv('DB_HOST')} con dialecto {os.getenv('DB_DIALECT')}")
 
 DB_NAME=os.getenv('DB_NAME')
 DB_USER=os.getenv('DB_USER')
@@ -18,6 +32,9 @@ DB_PASSWORD=os.getenv('DB_PASSWORD')
 DB_HOST=os.getenv('DB_HOST')
 DB_DIALECT=os.getenv('DB_DIALECT')
 DB_PORT=os.getenv('DB_PORT')
+
+# Debug para consola
+print(f"DEBUG: Intentando conectar a {DB_HOST} usando {DB_DIALECT}")
 
 
 # Definimos la URL de conexión para MySQL utilizando el driver pymysql
