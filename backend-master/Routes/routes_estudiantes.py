@@ -57,7 +57,9 @@ async def get_estudiantes(
 
     # 2. Consulta a la base de datos
     estudiantes_db = db.query(EntidadORM).filter(
-        EntidadORM.tipos_entidad.contains("ALU"),
+        # Buscar entidades que tengan un tipo relacionado cuyo nombre sea ALUMNO".
+        EntidadORM.tipo_entidad.has(tipo_entidad="ALUMNO"),
+        
         EntidadORM.apellido != "",
         EntidadORM.deleted_at.is_(None)
     ).all()
