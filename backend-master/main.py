@@ -185,7 +185,8 @@ async def delete_user(user_id: int, current_user: UserAuthData = Depends(auth.ge
 async def get_entidad(entidad_id: int, current_user: UserAuthData = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     
     # Usamos la sintaxis correcta del rol para verificar permisos
-    rol_actual = current_user.tipo_rol.tipo_roles_usuarios
+    # rol_actual = current_user.tipo_rol.tipo_roles_usuarios
+    rol_actual = current_user.tipo_rol.tipo_entidad
 
     # Verifica que el usuario tenga permisos (ADM o DOC)
     if rol_actual not in ['ADMIN_SISTEMA', 'DOCENTE_APP', 'ALUMNO_APP']: # Usa los valores de la BD

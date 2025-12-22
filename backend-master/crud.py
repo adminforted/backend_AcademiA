@@ -97,11 +97,7 @@ def c_create_user(db: Session, user: UserCreate):
         raise HTTPException(status_code=400, detail="El email ya está registrado")
         
     # Buscamos el ID del rol a asignar (necesario para la FK)
-    # Asumimos que user.tipo_rol_code contiene el código de rol (ej. 'ALUMNO_APP')
-    # tipo_rol_obj = db.query(TipoEntidad).filter(TipoEntidad.tipo_entidad == user.tipo_rol_code).first()
     tipo_rol_obj = db.query(TipoRolSistema).filter(TipoRolSistema.tipo_roles_usuarios == user.tipo_rol_code).first()
-    tipo_rol_obj = db.query(TipoRolSistema).filter(TipoRolSistema.tipo_roles_usuarios == value).first()
-
     
     if not tipo_rol_obj:
         raise HTTPException(status_code=400, detail=f"Código de rol '{user.tipo_rol_code}' inválido.")

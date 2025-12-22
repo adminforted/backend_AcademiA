@@ -63,7 +63,11 @@ class User(Base):
     # Token para restablecer contraseña, nullable
     reset_token = Column(String(255), nullable=True)
 
-
+    @property
+    def rol_sistema(self):
+        # Esta propiedad traduce el objeto complejo al texto simple 'ADMIN_SISTEMA'
+        return self.rol_sistema_obj.tipo_roles_usuarios if self.rol_sistema_obj else None
+    
     # Renombramos la columna FK para evitar ambigüedades
     # Usamos 'id_tipo_entidad_fk' como el nombre de la columna en BD
     # Y la llamaremos id_rol_sistema_fk en Python para evitar confusión con el rol de Entidad.
