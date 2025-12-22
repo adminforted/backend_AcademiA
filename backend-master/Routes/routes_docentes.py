@@ -43,7 +43,8 @@ async def get_docentes(db: Session = Depends(get_db)):
 
     # Buscamos entidades que tengan 'DOC' en sus tipos_entidad
     docentes_db = db.query(EntidadORM).filter(
-        EntidadORM.tipo_entidad.contains("DOCENTE"),
+        # Buscar entidades que tengan un tipo relacionado cuyo nombre sea ALUMNO".
+        EntidadORM.tipo_entidad.has(tipo_entidad="DOCENTE"),
         EntidadORM.apellido != "",
         EntidadORM.deleted_at.is_(None)
         
