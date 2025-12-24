@@ -294,3 +294,15 @@ class Nota(Base):
     # ------------------
     created_at = Column(DateTime, default=func.current_timestamp())
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+# ----------------------------------------------------------------------------------
+# MODELO CICLOS LECTIVOS
+# ----------------------------------------------------------------------------------
+
+class CicloLectivo(Base):
+    __tablename__ = "t_ciclo_lectivo"
+    id_ciclo_lectivo = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    nombre_ciclo_lectivo = Column(String(100), nullable=True)
+    fecha_inicio_cl = Column(Date, nullable=True)
+    fecha_fin_cl = Column(Date, nullable=True)
+    id_plan = Column(Integer, ForeignKey("t_plan.id_plan"), nullable=True)

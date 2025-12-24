@@ -214,3 +214,16 @@ class NotaResponse(NotaCreate):
     class Config:
         from_attributes = True
 
+# ----------------------------------------------------
+#   === Esquema para Ciclos Lectivos === 
+# ----------------------------------------------------
+
+class CicloLectivoResponse(BaseModel):
+    id_ciclo_lectivo: int
+    nombre_ciclo_lectivo: Optional[str] = None  # Ej: "2024", "2025"
+    fecha_inicio_cl: Optional[date] = None
+    fecha_fin_cl: Optional[date] = None
+    id_plan: Optional[int] = None
+    
+    class Config:
+        from_attributes = True # Esto permite leer modelos de SQLAlchemy

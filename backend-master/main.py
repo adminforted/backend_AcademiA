@@ -55,6 +55,8 @@ from models import (
     #   Inscripcion
 )
 
+from Routes.routes_ciclos import router as router_ciclos  # Para traer los ciclos lectivos
+
    
 # Creamos la instancia de FASTAPI
 app = FastAPI(
@@ -92,7 +94,8 @@ app.include_router(materias_router, prefix="/api/materias", tags=["Materias"])
 
 app.include_router(periodos_router, prefix="/api/periodos", tags=["Períodos"])
 
-
+# Registro del Router. Con el prefix="/api", la URL final queda http://localhost:8000/api/ciclos
+app.include_router(router_ciclos, prefix="/api")
 
 
 
