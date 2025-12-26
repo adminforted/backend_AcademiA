@@ -155,19 +155,24 @@ class Entidad(Base):
 
 
 # ----------------------------------------------------------------------------------
-# MODELOS PARA MTERIAS
+# MODELOS PARA MATERIAS
 # ----------------------------------------------------------------------------------
 
 # Modelo para la tabla t_materia
 class Materia(Base):
     __tablename__ = "t_materia"
     
-    id_materia = Column(Integer, primary_key=True)
+    id_materia = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     id_nombre_materia = Column(Integer, ForeignKey("t_nombre_materia.id_nombre_materia"), nullable=False)
-    id_nombre_curso = Column(Integer, ForeignKey("t_nombre_curso.id_nombre_curso"), nullable=False)
+    id_curso = Column(Integer, ForeignKey("t_curso.id_curso"), nullable=False)
     id_entidad = Column(Integer, ForeignKey("t_entidad.id_entidad"), nullable=False)
     created_at = Column(DateTime, default=func.current_timestamp())
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Relaciones: relationship define la relación del modelo Materia con otros modelos
+    nombre_rel = relationship("NombreMateria", back_populates="materias_vinculadas")
+
+
 
 # Modelo para la tabla tbl_nombre_materia
 class NombreMateria(Base):
@@ -177,6 +182,10 @@ class NombreMateria(Base):
     nombre_materia = Column(String(100), nullable=False)
     created_at = Column(DateTime, default=func.current_timestamp())
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Relaciones
+    # Para crear relacion bidireccional con Materia
+    materias_vinculadas = relationship("Materia", back_populates="nombre_rel") 
 
 
 # Modelo para la tabla t_inscripciones
@@ -200,16 +209,16 @@ class Inscripcion(Base):
 class TipoInasistencia(Base):
     __tablename__ = "t_tipo_inasistencia"  # <--- Nombre de la tabla de tipos
     
-    id_tipo_inasistencia = Column(Integer, primary_key=True, index=True)
+    id_tipo_inasistencia = Column(Integer, primary_key=True)
     descripcion = Column(String(50)) # Ej: "Completa", "Media"
     valor = Column(Float)      
 
 # Modelo para la tabla t_inasistencia
 class Inasistencia(Base):
     __tablename__ = "t_inasistencia"
-    id_inasistencia = Column(Integer, primary_key=True, index=True)
+    id_inasistencia = Column(Integer, primary_key=True)
     id_entidad = Column(Integer, ForeignKey("t_entidad.id_entidad")) # Relación con estudiante
-    id_nombre_curso = Column(Integer, ForeignKey("t_nombre_curso.id_nombre_curso")) # Relación con Curso
+    id_curso = Column(Integer, ForeignKey("t_curso.id_curso")) # Relación con Curso
     id_materia = Column(Integer, ForeignKey("t_materia.id_materia")) # Relación con Materia
     fecha_inasistencia = Column(Date)
     id_tipo_inasistencia = Column(Integer, ForeignKey("t_tipo_inasistencia.id_tipo_inasistencia")) # Relación con Tipo de asistencia
@@ -298,7 +307,6 @@ class Nota(Base):
 # ----------------------------------------------------------------------------------
 # MODELO CICLOS LECTIVOS
 # ----------------------------------------------------------------------------------
-
 class CicloLectivo(Base):
     __tablename__ = "t_ciclo_lectivo"
     id_ciclo_lectivo = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
@@ -306,3 +314,25 @@ class CicloLectivo(Base):
     fecha_inicio_cl = Column(Date, nullable=True)
     fecha_fin_cl = Column(Date, nullable=True)
     id_plan = Column(Integer, ForeignKey("t_plan.id_plan"), nullable=True)
+
+# ----------------------------------------------------------------------------------
+# MODELO PLAN
+# ----------------------------------------------------------------------------------
+class Plan(Base):
+    __tablename__ = "t_plan"
+    id_plan = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    nombre_plan = Column(String(50), nullable=False)
+    vigencia_desde= Column(Date, nullable=False)
+    vigencia_hasta= Column(Date, nullable=True)
+    resolucion_nro = Column(String(30), nullable=False)
+
+# ----------------------------------------------------------------------------------
+# MODELO CURSOS
+# ----------------------------------------------------------------------------------
+class Curso(Base):
+    __tablename__ = "t_curso"
+    id_curso = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    curso = Column(String(50), nullable=False)
+    id_ciclo_lectivo = Column(Integer, ForeignKey("t_ciclo_lectivo.id_ciclo_lectivo"))
+    created_at = Column(DateTime, default=func.current_timestamp(), nullable=False)
+    updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp(), nullable=True)

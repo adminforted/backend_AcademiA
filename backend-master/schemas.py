@@ -1,8 +1,10 @@
 # backend-master\schemas.py
+# Actúa como un puente entre el la Base de Datos (objetos complejos) y JSON.
+# Toma un objeto de SQLAlchemy (definido en models.py) y lo convierte texto plano (JSON) para React.
 
 # Importamos las clases y tipos necesarios de Pydantic para definir esquemas
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import date, datetime
 
 
@@ -76,7 +78,7 @@ class UserCreate(BaseModel):
     id_entidad: Optional[int] = None
     
     class Config:
-        # Se requiere esto si usas el esquema para recibir datos en un PUT/PATCH
+        # Requereido para recibir datos en un PUT/PATCH
         from_attributes = True
 
 # Esquema para la solicitud de olvido de contraseña
@@ -96,9 +98,11 @@ class EmailVerifyRequest(BaseModel):
 # ESQUEMAS DE NEGOCIO 
 # -------------------------------------------------------------
 
-# Esquema para la tabla t_tipo_entidad
+# =========================================================================
+# === ESQUEMAS PARA ENTIDADES ===
+# =========================================================================
+
 class TipoEntidad(BaseModel):
-    # Aquí puedes usar id_tipo_entidad si es la PK en lugar de cod_tipo_entidad
     id_tipo_entidad: int
     tipo_entidad: str        # El nombre de la columna en BD
     created_at: Optional[datetime] = None
@@ -108,15 +112,13 @@ class TipoEntidad(BaseModel):
     class Config:
         from_attributes = True
 
-# Esquema para la tabla t_entidad (Eliminamos usuario_id si la FK está en t_usuarios)
+# Esquema para la tabla t_entidad 
 class Entidad(BaseModel):
     id_entidad: int             
-    # ELIMINAR O COMENTAR: usuario_id: Optional[int]   
     nombre: str                 
     apellido: str               
     email: Optional[str] = None
     domicilio: Optional[str] = None
-    # ... (el resto de campos de Entidad sin cambios)
     
     class Config:
         from_attributes = True
@@ -137,12 +139,16 @@ class EstudianteCreate(EstudianteBase):
     pass
 
 class EstudianteUpdate(EstudianteBase):
-    pass
+    # Sobrescribimos para que dejen de ser obligatorios
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    
 
 class EstudianteResponse(EstudianteBase):
     id: int
     name: str # Campo calculado: "Apellido, Nombre"
     
+    # En la clase que hace el response, se pone el Class Config
     class Config:
         from_attributes = True
 
@@ -163,7 +169,8 @@ class DocenteCreate(DocenteBase):
     pass
 
 class DocenteUpdate(DocenteBase):
-    pass
+     nombre: Optional[str] = None
+     apellido: Optional[str] = None
 
 class DocenteResponse(DocenteBase):
     id: int
@@ -173,16 +180,12 @@ class DocenteResponse(DocenteBase):
         from_attributes = True
 
 
-
-        #  backend-master\schemas\nota_schema.py
-
 # =========================================================================
 #   === Esquema para NOTAS. Creación (Input desde el Front-end)
 # =========================================================================
 
 class NotaCreate(BaseModel):
-    """Define los campos necesarios que el Front-end debe enviar para crear una Nota."""
-    
+
     # Campos requeridos que vienen del formulario (CargarNotaIndividual.jsx)
     id_materia: int = Field(..., description="ID de la materia calificada.")
     id_entidad_estudiante: int = Field(..., description="ID del estudiante calificado.")
@@ -218,12 +221,88 @@ class NotaResponse(NotaCreate):
 #   === Esquema para Ciclos Lectivos === 
 # ----------------------------------------------------
 
-class CicloLectivoResponse(BaseModel):
-    id_ciclo_lectivo: int
+class CicloLectivo(BaseModel):
     nombre_ciclo_lectivo: Optional[str] = None  # Ej: "2024", "2025"
     fecha_inicio_cl: Optional[date] = None
     fecha_fin_cl: Optional[date] = None
     id_plan: Optional[int] = None
-    
+
+# Para CREAR: Solo se pide lo que está en la base (sin ID ni fechas)
+class CicloLectivoCreate(CicloLectivo):
+    pass 
+
+class CicloLectivoUpdate(CicloLectivo):
+    pass
+
+# Para RESPONDER: lo que se envía al Frontend (se agregan los restantes datos de Base)
+class CicloLectivoResponse(CicloLectivo):
+     id_ciclo_lectivo: int
+
+class Config:
+    from_attributes = True # Esto permite leer modelos de SQLAlchemy
+
+
+# ----------------------------------------------------
+#   === Esquema para Cursos === 
+# ----------------------------------------------------
+
+# Lo básico que se necesita para un cirso
+class CursoBase(BaseModel):
+    curso: str
+    id_ciclo_lectivo: int
+
+# Para CREAR: Solo se pide lo que está en la base (sin ID ni fechas)
+class CursoCreate(CursoBase):
+    pass 
+
+# Para RESPONDER: lo que se envía al Frontend (se agregan los restantes datos de Base)
+class CursoResponse(CursoBase):
+    id_curso: int
+    created_at: Optional[Any] = None
+    updated_at: Optional[Any] = None
+
     class Config:
-        from_attributes = True # Esto permite leer modelos de SQLAlchemy
+        from_attributes = True
+ 
+# ----------------------------------------------------
+#   === Esquema para Materias === 
+# ----------------------------------------------------
+
+
+# Primero definimos un clase para obtener nombre de la materia a partir del id (realcionar ambas clases)
+class NombreMateriaSimple(BaseModel):
+    nombre_materia: str # Definimos qué queremos ver de la tabla de nombres
+
+    class Config:
+        from_attributes = True
+
+# Esquema de Materia Base
+class MateriaBase(BaseModel):
+    id_nombre_materia: int
+    id_curso: int
+    id_entidad: int
+
+# Para CREAR (Solo lo que está Base)
+class MateriaCreate(MateriaBase):
+    pass 
+
+# Para Actualizar (hago todo opcional)
+class MateriaUpdate(MateriaBase):
+    id_nombre_materia: Optional[int] = None
+    id_curso: Optional[int] = None
+    id_entidad: Optional[int] = None
+    
+# Para RESPONDER: se agregan los restantes datos de Base
+class MateriaResponse(MateriaBase):
+    id_materia: int
+    
+    # Cargamos el objeto relacionado directamente
+    # nombre_rel: debe llamarse exactamente igual como en la relationship de models.py
+    nombre_rel: Optional[NombreMateriaSimple] = None
+    
+    created_at: Optional[Any] = None
+    updated_at: Optional[Any] = None
+
+    class Config:
+        from_attributes = True
+ 

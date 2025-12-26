@@ -56,6 +56,7 @@ from models import (
 )
 
 from Routes.routes_ciclos import router as router_ciclos  # Para traer los ciclos lectivos
+from Routes.routes_cursos import router as router_cursos  # Para traer los cursos
 
    
 # Creamos la instancia de FASTAPI
@@ -85,16 +86,13 @@ app.include_router(
     )
 
 app.include_router(notas_router, prefix="/api", tags=["Notas"])
-
 app.include_router(routes_docentes.router, prefix="/api/docentes", tags=["Docentes"]) 
-
 app.include_router(attendance_estudiantes.router, prefix="/api", tags=["Asistencias"])
-
 app.include_router(materias_router, prefix="/api/materias", tags=["Materias"])
-
 app.include_router(periodos_router, prefix="/api/periodos", tags=["Períodos"])
-
-# Registro del Router. Con el prefix="/api", la URL final queda http://localhost:8000/api/ciclos
+# http://localhost:8000/api/cursos
+app.include_router(router_cursos, prefix="/api")
+# http://localhost:8000/api/ciclos
 app.include_router(router_ciclos, prefix="/api")
 
 

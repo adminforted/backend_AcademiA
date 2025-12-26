@@ -14,5 +14,5 @@ router = APIRouter(
 @router.get("/", response_model=list[schemas.CicloLectivoResponse])
 def obtener_ciclos(db: Session = Depends(get_db)):
     # Esta línea busca todos los registros en la tabla
-    ciclos = db.query(CicloLectivo).all()
+    ciclos = db.query(CicloLectivo).order_by(CicloLectivo.nombre_ciclo_lectivo.desc()).all()
     return ciclos
