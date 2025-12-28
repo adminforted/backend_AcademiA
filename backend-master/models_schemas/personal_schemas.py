@@ -11,7 +11,7 @@ class PersonalResponse(BaseModel):
     localidad: str
     telefono: Optional[str] = None 
     cel: Optional[str] = None 
-    tipo_entidad: str # Aquí guardaremos el texto 'ALU', 'DOC', etc.
+    tipo_entidad: str #
     
     # Uso un campo calculado, para unir telefono y/o celular
     @computed_field

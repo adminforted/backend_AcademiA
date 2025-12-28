@@ -4,7 +4,7 @@
 # Toma un objeto de SQLAlchemy (definido en models.py) y lo convierte texto plano (JSON) para React.
 
 # Importamos las clases y tipos necesarios de Pydantic para definir esquemas
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, computed_field
 from typing import Optional, List, Any
 from datetime import date, datetime
 
@@ -165,9 +165,24 @@ class DocenteBase(BaseModel):
     nombre: str 
     apellido: str
     fec_nac: Optional[date] = None
+    dni: int = 0    # Le ponemos valor por defecto para que no "exlote" si no tiene DNI la BD
     email: Optional[str] = None
-    domicilio: Optional[str] = None
-    telefono: Optional[str] = None
+    domicilio: str = "No especificado"
+    localidad: str = "No especificada"
+    nacionalidad: str= "No especificada"
+    telefono: Optional[str] = "-"
+    cel: str = "-"
+
+    # Uso un campo calculado, para unir telefono y/o celular
+    @computed_field
+    @property
+    def tel_cel(self) -> str:
+        """Combina teléfono y celular en un solo campo"""
+        if self.telefono and self.cel:
+            return f"{self.telefono} / {self.cel}"
+        return self.telefono or self.cel or "-"
+    
+
 
 class DocenteCreate(DocenteBase):
     pass
@@ -175,6 +190,10 @@ class DocenteCreate(DocenteBase):
 class DocenteUpdate(DocenteBase):
      nombre: Optional[str] = None
      apellido: Optional[str] = None
+     domicilio: Optional[str] = None
+     localidad: Optional[str] = None
+     nacionalidad: Optional[str] = None
+     cel: Optional[int] = None
 
 class DocenteResponse(DocenteBase):
     id: int
@@ -183,6 +202,7 @@ class DocenteResponse(DocenteBase):
     class Config:
         from_attributes = True
 
+"""
 
 # =========================================================================
 # === ESQUEMAS PARA PERSONAL (se usa en routes_personal) ===
@@ -213,7 +233,7 @@ class PersonalResponse(PersonalBase):
     
     class Config:
         from_attributes = True
-
+"""
 
 # =========================================================================
 #   === Esquema para NOTAS. Creación (Input desde el Front-end)

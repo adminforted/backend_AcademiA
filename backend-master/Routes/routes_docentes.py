@@ -13,6 +13,7 @@ from schemas import (
 )
 from auth import get_current_user
 
+from datetime import datetime
 
 # 1. Definición del router
 router = APIRouter()
@@ -58,9 +59,11 @@ async def get_docentes(db: Session = Depends(get_db)):
             name=f"{doc.apellido}, {doc.nombre}".strip(),
             nombre=doc.nombre,       # Asignamos nombre
             apellido=doc.apellido,   # Asignamos apellido
+            dni=doc.dni or 0,          # El "or 0" salva el error si es NULL
             fec_nac=doc.fec_nac,     # Asignamos fecha de nacimiento
             email=doc.email,
             domicilio=doc.domicilio,
+            localidad=doc.localidad or "-", 
             telefono=doc.telefono
         ))
     return docentes
@@ -94,21 +97,26 @@ async def create_docente(docente: DocenteCreate, db: Session = Depends(get_db)):
     # Verificar si el email ya existe (solo si se proporciona)
     if docente.email and db.query(EntidadORM).filter(EntidadORM.email == docente.email).first():
         raise HTTPException(status_code=400, detail="El email ya está registrado")
-    
-    # Separar nombre y apellido
-    # parts = estudiante.name.split(' ', 1)
-    # nombre = parts[0]
-    # apellido = parts[1] if len(parts) > 1 else ""
-    
+
+    # La fecha 'created_at' viene del formulario (editada o no por el usuario)
+    # La fecha 'updated_at' la generamos nosotros ahora mismo
+    ahora = datetime.now() # Fecha y Hora actual
 
     new_docente = EntidadORM(
         nombre=docente.nombre.strip(),
         apellido=docente.apellido.strip(),
         email=docente.email,
+        dni=docente.dni or 0,  
         fec_nac=docente.fec_nac,
         domicilio=docente.domicilio,
+        localidad=docente.localidad,
+        nacionalidad=docente.nacionalidad,
         telefono=docente.telefono,
-        tipos_entidad="DOC"
+        cel=docente.cel  or 0,
+        id_tipo_entidad=2,
+        # Si el front manda solo fecha, SQLAlchemy lo convierte a datetime
+        # pero updated_at siempre será "ahora"
+        updated_at=ahora
     )
     
     db.add(new_docente)
