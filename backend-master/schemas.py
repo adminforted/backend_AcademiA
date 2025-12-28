@@ -1,4 +1,5 @@
-# backend-master\schemas.py
+# backend_AcademiA\backend-master\schemas.py
+
 # Actúa como un puente entre el la Base de Datos (objetos complejos) y JSON.
 # Toma un objeto de SQLAlchemy (definido en models.py) y lo convierte texto plano (JSON) para React.
 
@@ -158,7 +159,10 @@ class EstudianteResponse(EstudianteBase):
 # =========================================================================
 
 class DocenteBase(BaseModel):
-    nombre: str
+    # str, int, date: Python obliga a que los datos tengan ese tipo.
+    # Optional[...] = None: indica que el campo no es obligatorio. Si el frontend no lo envía, la base 
+    # de datos no recibirá un error, sino un valor nulo o vacío
+    nombre: str 
     apellido: str
     fec_nac: Optional[date] = None
     email: Optional[str] = None
@@ -175,6 +179,37 @@ class DocenteUpdate(DocenteBase):
 class DocenteResponse(DocenteBase):
     id: int
     name: str
+    
+    class Config:
+        from_attributes = True
+
+
+# =========================================================================
+# === ESQUEMAS PARA PERSONAL (se usa en routes_personal) ===
+# =========================================================================
+
+class PersonalBase(BaseModel):
+    nombre: str
+    apellido: str
+    fec_nac: Optional[date] = None
+    email: Optional[str] = None
+    domicilio: Optional[str] = None
+    telefono: Optional[str] = None
+    cel: Optional[str]
+    tipo_entidad: str # Aquí guardaremos el texto 'ALU', 'DOC', etc.
+
+
+class PersonalCreate(PersonalBase):
+    pass
+
+class PersonalUpdate(PersonalBase):
+     nombre: Optional[str] = None
+     apellido: Optional[str] = None
+
+class PersonalResponse(PersonalBase):
+    id: int
+    name: str
+
     
     class Config:
         from_attributes = True

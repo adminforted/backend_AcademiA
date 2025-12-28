@@ -33,12 +33,6 @@ class TipoEntidad(Base):
     # Fecha de eliminación lógica
     deleted_at = Column(DateTime, nullable=True)
 
-    # RELACIÓN INVERSA (NECESARIA para el back_populates='tipo_rol' de User)
-    # Lista todos los usuarios asociados a este tipo de entidad (ej: todos los 'DOC' o 'ALU').
-    # usuarios = relationship("User", back_populates="tipo_rol")
-
-
-
 # Modelo para la tabla t_usuarios, que almacena los datos de autenticación y el rol de la app
 class User(Base):
     __tablename__ = "t_usuarios"  # Nombre de la tabla
@@ -117,11 +111,8 @@ class Entidad(Base):
     __tablename__ = "t_entidad"  # Nombre de la tabla
     # Clave primaria, identificador único de la entidad
     id_entidad = Column(Integer, primary_key=True, index=True)
-    # Nombre de la entidad, no nulo
     nombre = Column(String(100), nullable=False)
-    # Apellido de la entidad, no nulo
     apellido = Column(String(100), nullable=False)
-    # Fecha de Nacimiento
     fec_nac = Column(Date, nullable=True)
 
     # Relación ORM. Permite usar .join(TipoEntidad) y EntidadORM.tipo_entidad
@@ -143,6 +134,8 @@ class Entidad(Base):
     nacionalidad = Column(String(50), nullable=False)
     # Email de contacto
     email = Column(String(100), nullable=True)
+    # Celular
+    cel = Column(String(50), nullable=True)
     # DNI
     dni = Column(Integer, nullable=False)
     # Legajo, específico para Estudiantes

@@ -2,7 +2,6 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-# Importaciones corregidas usando notación relativa (..)
 from database import localSession
 from models import ( 
     Entidad as EntidadORM, 
@@ -27,18 +26,8 @@ def get_db():
     finally:
         db.close()
 
-# 1. Definición del router
+# Definición del router
 router = APIRouter()
-
-# Dependencia de la base de datos
-def get_db():
-    db = localSession()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 
  
  # ==================== ENDPOINTS ESTUDIANTES ====================
@@ -58,7 +47,7 @@ async def get_estudiantes(
     # 2. Consulta a la base de datos
     estudiantes_db = db.query(EntidadORM).filter(
         # Buscar entidades que tengan un tipo relacionado cuyo nombre sea ALUMNO".
-        EntidadORM.tipo_entidad.has(tipo_entidad="ALUMNO"),
+        EntidadORM.tipo_entidad.has(TipoEntidad.tipo_entidad =="ESTUDIANTE"),
         
         EntidadORM.apellido != "",
         EntidadORM.deleted_at.is_(None)
@@ -85,7 +74,7 @@ async def get_estudiantes(
 async def get_estudiante(id: int, db: Session = Depends(get_db)):
      est = db.query(EntidadORM).filter(
          EntidadORM.id_entidad == id,
-         EntidadORM.tipos_entidad.contains("ALU"),
+         EntidadORM.tipo_entidad.contains("ESTUDIANTE"),
          EntidadORM.deleted_at.is_(None)
      ).first()
      
@@ -122,7 +111,7 @@ async def create_estudiante(estudiante: EstudianteCreate, db: Session = Depends(
          fec_nac=estudiante.fec_nac,
          domicilio=estudiante.domicilio,
          telefono=estudiante.telefono,
-         tipos_entidad="ALU"
+         id_tipo_entidad=1
      )
      
      db.add(new_estudiante)
@@ -190,10 +179,10 @@ async def delete_estudiante(id: int, db: Session = Depends(get_db)):
 
       # ==================== MATERIAS DE UN ESTUDIANTE ====================
 
-@router.get("/api/estudiantes/{estudiante_id}/materias")    # Nota: El prefijo /api/estudiantes/ ya se añade en main.py
+@router.get("/api/estudiantes/{estudiante_id}/materias")    # El prefijo /api/estudiantes/ ya se añade en main.py
 async def get_materias_por_estudiante(estudiante_id: int, 
                                       db: Session = Depends(get_db),
-                                      current_user: UserAuthData = Depends(get_current_user)): # 🚨 Añadir contro
+                                      current_user: UserAuthData = Depends(get_current_user)): 
 
 
 # Lógica de Permisos (Ejemplo: Solo el ADMIN o el PROPIO estudiante pueden ver sus materias)

@@ -101,19 +101,13 @@ def obtener_planilla_calificaciones(
                     "notas": {}
                 }
 
-        # --- EL CAMBIO ESTÁ AQUÍ ---
             # Buscamos el nombre del periodo (ej: "1er Trimestre") usando el id_periodo de la nota
             nombre_periodo = periodos_dict.get(nota.id_periodo, "Desconocido")
             
             # Guardamos la nota usando el nombre del periodo como clave
             planilla_por_alumno[alumno_id]["notas"][nombre_periodo] = float(nota.nota) if nota.nota is not None else None
 
-
-            # Guardar nota según su tipo
-            # tipo_concepto = tipos_dict.get(nota.id_tipo_nota, "Desconocido")
-            # planilla_por_alumno[alumno_id]["notas"][tipo_concepto] = float(nota.nota) if nota.nota is not None else None
-
-        # 4. Construir respuesta final con promedio calculado
+        # Construir respuesta final con promedio calculado
         resultado = []
         for data in planilla_por_alumno.values():
             notas_dict = data["notas"]
@@ -137,9 +131,6 @@ def obtener_planilla_calificaciones(
                 "nota_def": notas_dict.get("Definitiva") or prom,
                 "observaciones": notas_dict.get("Observaciones", ""),
             })
-
-        #   5. Ordenar por apellido y nombre
-        #   resultado.sort(key=lambda x: (x["alumno"]["apellido"].upper(), x["alumno"]["nombre"].upper()))
 
         return resultado
 

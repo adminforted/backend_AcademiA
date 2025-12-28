@@ -4,5 +4,6 @@
 from .routes_estudiantes import router as estudiantes_router
 from .routes_materias import router as materias_router
 from .routes_periodos import router as periodos_router
+from .routes_personal import router as personal_router
 
-__all__ = ["estudiantes_router", "materias_router", "periodos_router"]
+__all__ = ["estudiantes_router", "materias_router", "periodos_router", "personal_router"  ]

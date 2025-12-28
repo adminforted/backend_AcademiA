@@ -19,6 +19,7 @@ from Routes.routes_materias import router as materias_router
 from Routes.routes_periodos import router as periodos_router
 from Routes.routes_estudiantes import router as routes_estudiantes
 from Routes.routes_notas import router as notas_router
+from Routes.routes_personal import router as personal_router
 
 from auth import send_email, get_password_hash, generate_token
 
@@ -57,6 +58,7 @@ from models import (
 
 from Routes.routes_ciclos import router as router_ciclos  # Para traer los ciclos lectivos
 from Routes.routes_cursos import router as router_cursos  # Para traer los cursos
+from Routes.routes_personal import router as router_personal 
 
    
 # Creamos la instancia de FASTAPI
@@ -94,6 +96,9 @@ app.include_router(periodos_router, prefix="/api/periodos", tags=["Períodos"])
 app.include_router(router_cursos, prefix="/api")
 # http://localhost:8000/api/ciclos
 app.include_router(router_ciclos, prefix="/api")
+
+app.include_router(router_personal, prefix="/api")
+
 
 
 
