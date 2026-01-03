@@ -19,7 +19,11 @@ from Routes.routes_materias import router as materias_router
 from Routes.routes_periodos import router as periodos_router
 from Routes.routes_estudiantes import router as routes_estudiantes
 from Routes.routes_notas import router as notas_router
-from Routes.routes_personal import router as personal_router
+from Routes.routes_ciclos import router as router_ciclos  # Para traer los ciclos lectivos
+from Routes.routes_cursos import router as router_cursos  # Para traer los cursos
+from Routes.routes_personal import router as router_personal 
+from Routes.routes_cursos import router as router_cursos  # Para traer los cursoscursos
+
 
 from auth import send_email, get_password_hash, generate_token
 
@@ -56,9 +60,7 @@ from models import (
     #   Inscripcion
 )
 
-from Routes.routes_ciclos import router as router_ciclos  # Para traer los ciclos lectivos
-from Routes.routes_cursos import router as router_cursos  # Para traer los cursos
-from Routes.routes_personal import router as router_personal 
+
 
    
 # Creamos la instancia de FASTAPI
@@ -98,7 +100,6 @@ app.include_router(router_cursos, prefix="/api")
 app.include_router(router_ciclos, prefix="/api")
 
 app.include_router(router_personal, prefix="/api")
-
 
 
 
@@ -168,6 +169,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user, _ = crud.c_create_user(db, user)
     db_user.tipos_usuario = [ut.cod_tipo_usuario for ut in db.query(auth.UsuarioTipos).filter(auth.UsuarioTipos.usuario_id == db_user.id).all()]
     return db_user
+
 
 
 # Endpoint para actualizar un usuario existente
@@ -252,7 +254,7 @@ for route in app.routes:
         print(f"Ruta: {route.path} | Nombre: {route.name}")
 print("🔍 ------------------------------------")
 
-# Al final de todo en main.py
+
 print("\n" + "="*50)
 print("SISTEMA DE RUTAS ACTIVAS")
 for route in app.routes:

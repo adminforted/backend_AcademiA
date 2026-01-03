@@ -19,7 +19,7 @@ async def get_periodos(db: Session = Depends(get_db)):
     return [
         {
             "id_periodo": p.id_periodo,
-            "nombre_periodo": p.descripcion
+            "nombre_periodo": p.nombre_periodo
         } for p in periodos
     ]
 

@@ -162,9 +162,15 @@ class Materia(Base):
     created_at = Column(DateTime, default=func.current_timestamp())
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
 
-    # Relaciones: relationship define la relación del modelo Materia con otros modelos
-    nombre_rel = relationship("NombreMateria", back_populates="materias_vinculadas")
-
+    # --- RELACIONES ---
+    # Con el nombre (Matemática, Lengua, etc.)
+    nombre = relationship("NombreMateria", back_populates="materias_vinculadas")
+    
+    # Con el Curso (para llegar a Ciclo y Plan)
+    curso = relationship("Curso") 
+    
+    # Con el Docente (Entidad)
+    docente = relationship("Entidad")
 
 
 # Modelo para la tabla tbl_nombre_materia
@@ -178,7 +184,7 @@ class NombreMateria(Base):
 
     # Relaciones
     # Para crear relacion bidireccional con Materia
-    materias_vinculadas = relationship("Materia", back_populates="nombre_rel") 
+    materias_vinculadas = relationship("Materia", back_populates="nombre") 
 
 
 # Modelo para la tabla t_inscripciones
@@ -245,9 +251,6 @@ class TipoNota(Base):
     
     id_tipo_nota = Column(Integer, primary_key=True, index=True, autoincrement=True)
     tipo_nota = Column(String(20), nullable=False) # Ej: "Calificación Normal", "Recuperatorio"
-    created_at = Column(DateTime, default=func.current_timestamp())
-    updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
-
 
 # ----------------------------------------------------------------------------------
 # MODELO ORM PRINCIPAL DE NOTAS
@@ -308,6 +311,10 @@ class CicloLectivo(Base):
     fecha_fin_cl = Column(Date, nullable=True)
     id_plan = Column(Integer, ForeignKey("t_plan.id_plan"), nullable=True)
 
+    # RELACIONES 
+    plan = relationship("Plan")     # Un ciclo pertenece a un plan
+    cursos = relationship("Curso", back_populates="ciclo")      
+
 # ----------------------------------------------------------------------------------
 # MODELO PLAN
 # ----------------------------------------------------------------------------------
@@ -318,6 +325,9 @@ class Plan(Base):
     vigencia_desde= Column(Date, nullable=False)
     vigencia_hasta= Column(Date, nullable=True)
     resolucion_nro = Column(String(30), nullable=False)
+    
+    # Relación inversa 
+    ciclos = relationship("CicloLectivo", back_populates="plan")
 
 # ----------------------------------------------------------------------------------
 # MODELO CURSOS
@@ -329,3 +339,6 @@ class Curso(Base):
     id_ciclo_lectivo = Column(Integer, ForeignKey("t_ciclo_lectivo.id_ciclo_lectivo"))
     created_at = Column(DateTime, default=func.current_timestamp(), nullable=False)
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp(), nullable=True)
+
+    # Relación: Un curso pertenece a un ciclo
+    ciclo = relationship("CicloLectivo", back_populates="cursos")   # Busca "cursos" en CicloLectivo

@@ -1,20 +1,20 @@
 # backend-master/Routes/routes_notas.py
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager, joinedload
 from typing import List
 
 # Importaciones CLAVE:
 # Importar el servicio (ajusta la ruta de importación si es necesario, 
 # asumiendo que está en la carpeta 'Services' al mismo nivel que 'Routes')
 from Services import nota_service 
-from schemas import NotaCreate, NotaResponse
+
+# Importamos todos los modelos y esquemas, por practicidad y limpieza
+import models, schemas
 
 # Uso la función de DB está de database.py en la raíz
 from database  import get_db
 
-# Importar modelos (ajustá la ruta si es necesario)
-from models import Nota, Entidad, TipoNota, Periodo, Materia  # <-- Asegurate de tener estos importados
 
 # Definición del Router
 router = APIRouter(
@@ -25,8 +25,8 @@ router = APIRouter(
 # =====================================
 #  POST - Crear una nota individual
 # =====================================
-@router.post("/", response_model=NotaResponse, status_code=status.HTTP_201_CREATED)
-def crear_nota(nota: NotaCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=schemas.NotaResponse, status_code=status.HTTP_201_CREATED)
+def crear_nota(nota: schemas.NotaCreate, db: Session = Depends(get_db)):
     """
     Endpoint para registrar una nueva nota individual llamando al servicio.
     """
@@ -41,101 +41,77 @@ def crear_nota(nota: NotaCreate, db: Session = Depends(get_db)):
             detail=f"Error al registrar la nota: {str(e)}",
         )
     
-# =====================================
+# =====================================================
 #  GET - Obtener planilla de calificaciones
-# =====================================
-@router.get("/planilla", response_model=List[dict])
-def obtener_planilla_calificaciones(
-    materia_id: int = Query(..., description="ID de la materia/asignatura"),
-    periodo_id: int = Query(..., description="ID del período/ciclo lectivo"),
+# =====================================================
+
+@router.get("/planilla-acta", response_model=schemas.PlanillaActaResponse)
+def obtener_acta_calificaciones(
+    ciclo_id: int = Query(..., description="ID del ciclo lectivo"),
+    curso_id: int = Query(..., description="ID del curso"),
+    materia_id: int = Query(..., description="ID de la materia"),
     db: Session = Depends(get_db)
 ):
-    """
-    Devuelve la planilla completa de calificaciones para una materia y período.
-    Pivotea las notas por tipo (1ºT, 2ºT, 3ºT, Promedio, Dic, Feb, Definitiva).
-    Ordena por apellido y nombre del alumno.
-    """
-    print("¡ESTO SE TIENE QUE VER EN CONSOLA!") # Si esto no sale, la ruta sigue mal registrada
     try:
-        # 1. Obtener los nombres de los PERIODOS (1ºT, 2ºT, etc.)
-        periodos = db.query(Periodo).all()
-        periodos_dict = {p.id_periodo: p.nombre_periodo.strip() for p in periodos}
+        # Obtener Columnas (Encabezados)
+        columnas_query = (
+            db.query(models.TipoNota.id_tipo_nota, models.TipoNota.tipo_nota)
+            .order_by(models.TipoNota.id_tipo_nota)
+            .all()
+        )
+        headers = [schemas.ColumnaHeader(id_tipo_nota=c.id_tipo_nota, label=c.tipo_nota) 
+                   for c in columnas_query]
+
+        # Obtener TODAS las notas de la materia
+        # Usamos join con Entidad para traer los nombres de los ESTUDIANTES (id_entidad_estudiante)
+        notas_existentes = (
+         db.query(models.Nota)
+         .options(joinedload(models.Nota.estudiante)) # Carga al alumno de un solo golpe
+         .filter(models.Nota.id_materia == materia_id)
+         .all()
+)
         
-        # LOG DE DEPURACIÓN
-        print(f"--- Buscando notas para Materia: {materia_id}, Periodo: {periodo_id} ---")
 
-        # 1. Obtener todos los tipos de nota para mapear nombres
-        # tipos_nota = db.query(TipoNota).all()
-        # print(f"Tipos de nota encontrados: {len(tipos_nota)}")
-
-        # tipos_dict = {tn.id_tipo_nota: tn.tipo_concepto.strip() for tn in tipos_nota}
-
-        # 2. Traer todas las notas para esa materia y período
-        notas = db.query(Nota).filter(
-            Nota.id_materia == materia_id,
-            Nota.id_periodo == periodo_id
-        ).all()
-        print(f"Notas crudas encontradas en DB: {len(notas)}")
-
-        if not notas:
-            return []  # Si no hay notas, devuelve lista vacía (frontend lo maneja bien)
-
-        # 3. Agrupar por alumno
-        planilla_por_alumno = {}
-
-        for nota in notas:
-            alumno_id = nota.id_entidad_estudiante
-
-            if alumno_id not in planilla_por_alumno:
-                # Traer datos del alumno una sola vez
-                alumno = db.query(Entidad).filter(Entidad.id_entidad == alumno_id).first()
-                if not alumno:
-                    continue  # seguridad, aunque no debería pasar
-
-                planilla_por_alumno[alumno_id] = {
-                    "alumno": {
-                        "id": alumno.id_entidad,
-                        "nombre": alumno.nombre or "",
-                        "apellido": alumno.apellido or "",
-                    },
-                    "notas": {}
+        # Identificar Estudiantes únicos a partir de las notas
+        # Creamos un diccionario para no repetir alumnos
+        estudiantes_map = {}
+        for n in notas_existentes:
+            if n.id_entidad_estudiante not in estudiantes_map:
+                # n.estudiante es la relación en tu modelo Nota que apunta al alumno
+                est = n.estudiante 
+                estudiantes_map[n.id_entidad_estudiante] = {
+                    "id": est.id_entidad,
+                    "nombre_completo": f"{est.apellido}, {est.nombre}"
                 }
 
-            # Buscamos el nombre del periodo (ej: "1er Trimestre") usando el id_periodo de la nota
-            nombre_periodo = periodos_dict.get(nota.id_periodo, "Desconocido")
+        # Construir las filas procesando las notas de cada estudiante
+        filas = []
+        for alu_id, alu_info in estudiantes_map.items():
+            # Filtramos las notas que pertenecen a este alumno específico
+            notas_del_alumno = {n.id_tipo_nota: float(n.nota) for n in notas_existentes 
+                                if n.id_entidad_estudiante == alu_id}
             
-            # Guardamos la nota usando el nombre del periodo como clave
-            planilla_por_alumno[alumno_id]["notas"][nombre_periodo] = float(nota.nota) if nota.nota is not None else None
+            # Mapeamos las calificaciones según los headers
+            calificaciones = {col.id_tipo_nota: notas_del_alumno.get(col.id_tipo_nota) 
+                              for col in headers}
 
-        # Construir respuesta final con promedio calculado
-        resultado = []
-        for data in planilla_por_alumno.values():
-            notas_dict = data["notas"]
+            # Cálculo de promedio
+            notas_val = [v for v in calificaciones.values() if v is not None]
+            promedio = round(sum(notas_val) / len(notas_val), 2) if notas_val else None
 
-            # Calcular promedio de trimestres
-            trimestres = []
-            for tipo in ["1º Trimestre", "2º Trimestre", "3º Trimestre"]:
-                if tipo in notas_dict and notas_dict[tipo] is not None:
-                    trimestres.append(notas_dict[tipo])
+            filas.append(schemas.AlumnoNotaRow(
+                id_alumno=alu_id,
+                nombre_completo=alu_info["nombre_completo"],
+                calificaciones=calificaciones,
+                promedio=promedio,
+                definitiva=calificaciones.get(7) # ID 7 según tu JSON
+            ))
 
-            prom = round(sum(trimestres) / len(trimestres), 2) if trimestres else None
-
-            resultado.append({
-                "alumno": data["alumno"],
-                "nota_t1": notas_dict.get("1º Trimestre"),
-                "nota_t2": notas_dict.get("2º Trimestre"),
-                "nota_t3": notas_dict.get("3º Trimestre"),
-                "prom": prom,
-                "nota_dic": notas_dict.get("Diciembre"),
-                "nota_feb": notas_dict.get("Febrero"),
-                "nota_def": notas_dict.get("Definitiva") or prom,
-                "observaciones": notas_dict.get("Observaciones", ""),
-            })
-
-        return resultado
+        return schemas.PlanillaActaResponse(
+            columnas=headers,
+            filas=sorted(filas, key=lambda x: x.nombre_completo)
+        )
 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener la planilla de calificaciones: {str(e)}"
-        )
+        print(f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")

@@ -1,11 +1,15 @@
 # backend_AcademiA\backend-master\schemas.py
 
-# Actúa como un puente entre el la Base de Datos (objetos complejos) y JSON.
-# Toma un objeto de SQLAlchemy (definido en models.py) y lo convierte texto plano (JSON) para React.
+# Nomenclatura de Prefijos o SUFIJOS
+#   - Base: Para los campos que están en todas las versiones (comunes).
+#   - Create / Update: Para los datos que entran desde el Frontend (sin IDs).
+#   - Simple / List: Para listados rápidos (sin relaciones pesadas).
+#   - Relacional / Full: Para cuando necesitas toda la anidación (Curso > Ciclo > Plan).
+
 
 # Importamos las clases y tipos necesarios de Pydantic para definir esquemas
 from pydantic import BaseModel, EmailStr, Field, computed_field
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Dict
 from datetime import date, datetime
 
 
@@ -96,6 +100,28 @@ class EmailVerifyRequest(BaseModel):
     token: str
 
 # -------------------------------------------------------------
+# ESQUEMAS DE TABLA
+# -------------------------------------------------------------
+
+class ColumnaHeader(BaseModel):
+    id_tipo_nota: int
+    label: str  # Ejemplo: "1°T", "DIC"
+
+class AlumnoNotaRow(BaseModel):
+    id_alumno: int
+    nombre_completo: str
+    # Diccionario donde la llave es el id_tipo_nota y el valor la nota o null
+    calificaciones: Dict[int, Optional[float]] 
+    promedio: Optional[float] = None
+    definitiva: Optional[float] = None
+
+class PlanillaActaResponse(BaseModel):
+    # metadata: Dict[str, str] # Curso, Materia, Ciclo, Docente
+    columnas: List[ColumnaHeader]
+    filas: List[AlumnoNotaRow]
+
+
+# -------------------------------------------------------------
 # ESQUEMAS DE NEGOCIO 
 # -------------------------------------------------------------
 
@@ -155,9 +181,19 @@ class EstudianteResponse(EstudianteBase):
 
 
 # =========================================================================
-# === ESQUEMAS PARA DOCENTES (DocentesRoutes) ===
+# === ESQUEMAS PARA DOCENTES  ===
 # =========================================================================
 
+# Para listados rápidos o anidamiento
+class DocenteSimple(BaseModel):
+    id_entidad: int
+    nombre: str
+    apellido: str
+
+    class Config:
+        from_attributes = True
+
+# Esquema base con campos comunes para validación
 class DocenteBase(BaseModel):
     # str, int, date: Python obliga a que los datos tengan ese tipo.
     # Optional[...] = None: indica que el campo no es obligatorio. Si el frontend no lo envía, la base 
@@ -165,42 +201,52 @@ class DocenteBase(BaseModel):
     nombre: str 
     apellido: str
     fec_nac: Optional[date] = None
-    dni: int = 0    # Le ponemos valor por defecto para que no "exlote" si no tiene DNI la BD
-    email: Optional[str] = None
+    # Le ponemos valor por defecto para que no "exlote" si no tiene DNI la BD
+    dni: int = 0    
+    # Usamos EmailStr para validar formato
+    email: Optional[EmailStr] = None 
     domicilio: str = "No especificado"
     localidad: str = "No especificada"
     nacionalidad: str= "No especificada"
     telefono: Optional[str] = "-"
     cel: str = "-"
 
-    # Uso un campo calculado, para unir telefono y/o celular
-    @computed_field
-    @property
-    def tel_cel(self) -> str:
-        """Combina teléfono y celular en un solo campo"""
-        if self.telefono and self.cel:
-            return f"{self.telefono} / {self.cel}"
-        return self.telefono or self.cel or "-"
-    
 
-
+# Para CREAR
 class DocenteCreate(DocenteBase):
     pass
 
-class DocenteUpdate(DocenteBase):
+# Para ACTUALIZAR: Flexibilidad total heredando de BaseModel
+class DocenteUpdate(BaseModel):
      nombre: Optional[str] = None
      apellido: Optional[str] = None
      domicilio: Optional[str] = None
      localidad: Optional[str] = None
      nacionalidad: Optional[str] = None
-     cel: Optional[int] = None
+     cel: Optional[str] = None
 
+# Para RESPONDER (Salida de API)
 class DocenteResponse(DocenteBase):
-    id: int
-    name: str
+    id_entidad: int # Usamos el nombre real de la PK en t_entidad
+    nombre: str
     
+   
+    # Campos calculados
+    @computed_field
+    @property
+    def tel_cel(self) -> str:
+        partes = [p for p in [self.telefono, self.cel] if p]
+        return " / ".join(partes) if partes else "-"
+
+    @computed_field
+    @property
+    def nombre_completo(self) -> str:
+        return f"{self.apellido}, {self.nombre}"
+
     class Config:
         from_attributes = True
+
+
 
 """
 
@@ -236,33 +282,24 @@ class PersonalResponse(PersonalBase):
 """
 
 # =========================================================================
-#   === Esquema para NOTAS. Creación (Input desde el Front-end)
+#   === Esquema para NOTAS. 
 # =========================================================================
 
+# Esquema para creación (Input desde el Front-end)
 class NotaCreate(BaseModel):
-
     # Campos requeridos que vienen del formulario (CargarNotaIndividual.jsx)
     id_materia: int = Field(..., description="ID de la materia calificada.")
     id_entidad_estudiante: int = Field(..., description="ID del estudiante calificado.")
     nota: float = Field(..., ge=1.0, le=10.0, description="Calificación obtenida (entre 1.0 y 10.0).")
     id_periodo: int = Field(..., description="ID del período (trimestre, semestre, etc.)")
     
-    # Campo opcional que puede ser ignorado por el servicio si se define en el backend
-    # id_entidad_carga: Optional[int] = None 
-    # id_tipo_nota: Optional[int] = None
-
-
     class Config:
         # Esto permite que los objetos puedan ser usados en un ORM.
         # Es una práctica recomendada en Pydantic v1 (que usa FastAPI clásico)
         from_attributes = True
 
-# ----------------------------------------------------
-#   === Esquema para NOTAS. Respuesta NOTAS (Output hacia el Front-end)
-# ----------------------------------------------------
+# Esquema para respuesta (Output hacia el Front-end)
 class NotaResponse(NotaCreate):
-    """Define la estructura de la Nota una vez que ha sido guardada en la DB."""
-
     # Campos que la DB asigna automáticamente
     id_nota: int = Field(..., description="ID único autogenerado de la nota.")
     id_entidad_carga: int = Field(..., description="ID de la entidad docente/usuario que cargó la nota.")
@@ -272,61 +309,165 @@ class NotaResponse(NotaCreate):
     class Config:
         from_attributes = True
 
+# Esquema para Planilla de calificaciones
+class PlanillaCalificacionesResponse(BaseModel):
+    alumno: EstudianteResponse
+    
+    # Notas del pivoteo
+    t1: Optional[float] = None
+    t2: Optional[float] = None
+    t3: Optional[float] = None
+    prom: Optional[float] = None
+    dic: Optional[float] = None
+    feb: Optional[float] = None
+    definitiva: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ----------------------------------------------------
+#   === Esquema para Plan === 
+# ----------------------------------------------------
+
+# Esquema simple (para relaciones anidadas)
+# Para cuando Plan es hijo de otra entidad (ej: ciclo)
+class PlanSimple(BaseModel):
+    id_plan: int
+    nombre_plan: str
+
+    # Se pone from_attributes = True porque se lee de la base de datos
+    class Config:
+        from_attributes = True    
+
+# Esquema base con campos comunes. Tiene la lógica de negocio. 
+class PlanBase(BaseModel):
+    nombre_plan: str 
+    vigencia_desde: date 
+    vigencia_hasta: Optional[date] = None
+    resolucion_nro: str
+
+# Para CREAR: Se pide lo que está en base (sin ID)
+class PlanCreate(PlanBase):
+    pass 
+
+# Para ACTUALIZAR: todo es opcional, para que no obligue a cambiarlo
+# Heredar de BaseModel es la mejor opción para Update. Lo hace totalmente flexible.
+class PlanUpdate(BaseModel):
+    nombre_plan: Optional[str] = None
+    vigencia_desde: Optional[date] = None
+    vigencia_hasta: Optional[date] = None
+    resolucion_nro: Optional[str] = None
+    
+
+# Para RESPONDER: lo que se envía al Frontend. Devuelve ID + todo lo de PlanBase
+class PlanResponse(PlanBase):
+    id_plan: int
+
+    # Se pone from_attributes = True porque se lee de la base de datos
+    class Config:
+        from_attributes = True 
+
+
 # ----------------------------------------------------
 #   === Esquema para Ciclos Lectivos === 
 # ----------------------------------------------------
 
-class CicloLectivo(BaseModel):
-    nombre_ciclo_lectivo: Optional[str] = None  # Ej: "2024", "2025"
+# Esquema simple
+class CicloLectivoSimple(BaseModel):
+    id_ciclo_lectivo: int
+    nombre_ciclo_lectivo: str
+    
+    class Config:
+        from_attributes = True
+
+# Esquema base con campos comunes
+class CicloLectivoBase(BaseModel):
+    nombre_ciclo_lectivo: str
     fecha_inicio_cl: Optional[date] = None
     fecha_fin_cl: Optional[date] = None
     id_plan: Optional[int] = None
 
-# Para CREAR: Solo se pide lo que está en la base (sin ID ni fechas)
-class CicloLectivoCreate(CicloLectivo):
+# Para CREAR: Solo se pide lo que está en la base (sin ID)
+class CicloLectivoCreate(CicloLectivoBase):
     pass 
 
-class CicloLectivoUpdate(CicloLectivo):
-    pass
+# Para ACTUALIZAR: hereda atributos de BaseModel. Todos los campos opcionales.
+class CicloLectivoUpdate(BaseModel):
+    nombre_ciclo_lectivo: Optional[str] = None
+    fecha_inicio_cl: Optional[date] = None
+    fecha_fin_cl: Optional[date] = None
+    id_plan: Optional[int] = None
+    
+# Para RESPONDER: se le suma el ID al CicloLectivoBase
+class CicloLectivoResponse(CicloLectivoBase):
+    id_ciclo_lectivo: int
 
-# Para RESPONDER: lo que se envía al Frontend (se agregan los restantes datos de Base)
-class CicloLectivoResponse(CicloLectivo):
-     id_ciclo_lectivo: int
+    class Config:
+        from_attributes = True # Esto permite leer modelos de SQLAlchemy
 
-class Config:
-    from_attributes = True # Esto permite leer modelos de SQLAlchemy
+
+# ----------- Esquema para Ciclo Lectivo y Plan anidado ----------- 
+class CicloLectivoPlan(CicloLectivoSimple):
+    # Esto trae los datos de t_plan. FastAPI busca el objeto 'plan' dentro de 'ciclo'
+    plan: PlanSimple  
+
+    class Config:
+        from_attributes = True
 
 
 # ----------------------------------------------------
 #   === Esquema para Cursos === 
 # ----------------------------------------------------
 
-# Lo básico que se necesita para un cirso
+# Lo básico que se necesita para un curso
+class CursoSimple(BaseModel):
+    id_curso: int
+    curso: str
+    
+    class Config:
+        from_attributes = True
+    
+# Esquema base con campos comunes
 class CursoBase(BaseModel):
     curso: str
-    id_ciclo_lectivo: int
+    created_at: Optional[Any] = None
+    updated_at: Optional[Any] = None
+    id_ciclo_lectivo: Optional[int] = None
 
-# Para CREAR: Solo se pide lo que está en la base (sin ID ni fechas)
+# Para CREAR: Solo se pide lo que está en la base (sin ID)
 class CursoCreate(CursoBase):
     pass 
+
+# Para ACTUALIZAR: hereda atributos de BaseModel. Todos los campos opcionales.
+# No permite update a Created_at y updated_at, porque son campos de auditoría
+class CursoUpdate(BaseModel):
+    curso: Optional[str] = None
+    id_ciclo_lectivo: Optional[int] = None
 
 # Para RESPONDER: lo que se envía al Frontend (se agregan los restantes datos de Base)
 class CursoResponse(CursoBase):
     id_curso: int
-    created_at: Optional[Any] = None
-    updated_at: Optional[Any] = None
 
     class Config:
         from_attributes = True
+
+
+# ----------- Esquema Curso Anidado ----------- 
+class CursoCicloLectivo(CursoSimple):
+    ciclo: CicloLectivoPlan # Debe relacionarse con el anidado para plan
+    
+    class Config:
+        from_attributes = True
+        
  
 # ----------------------------------------------------
 #   === Esquema para Materias === 
 # ----------------------------------------------------
 
-
-# Primero definimos un clase para obtener nombre de la materia a partir del id (realcionar ambas clases)
+# Por claridad, extrae el nombre de t_nombre_materia
 class NombreMateriaSimple(BaseModel):
-    nombre_materia: str # Definimos qué queremos ver de la tabla de nombres
+    nombre_materia: str
 
     class Config:
         from_attributes = True
@@ -335,14 +476,14 @@ class NombreMateriaSimple(BaseModel):
 class MateriaBase(BaseModel):
     id_nombre_materia: int
     id_curso: int
-    id_entidad: int
+    id_entidad: int # ID del Docente
 
 # Para CREAR (Solo lo que está Base)
 class MateriaCreate(MateriaBase):
     pass 
 
-# Para Actualizar (hago todo opcional)
-class MateriaUpdate(MateriaBase):
+# Para Actualizar. Heredamos de BaseModel para que sea opcional
+class MateriaUpdate(BaseModel):
     id_nombre_materia: Optional[int] = None
     id_curso: Optional[int] = None
     id_entidad: Optional[int] = None
@@ -350,14 +491,28 @@ class MateriaUpdate(MateriaBase):
 # Para RESPONDER: se agregan los restantes datos de Base
 class MateriaResponse(MateriaBase):
     id_materia: int
+    id_nombre_materia: int
+    id_curso: int
+    id_entidad: int
+
+    # --- CAMPOS CALCULADOS PARA LA TABLA ---
+    @computed_field
+    @property
+    def docente_nombre_completo(self) -> str:
+        if self.docente:
+            return f"{self.docente.apellido}, {self.docente.nombre}"
+        return "Sin asignar"
     
-    # Cargamos el objeto relacionado directamente
-    # nombre_rel: debe llamarse exactamente igual como en la relationship de models.py
-    nombre_rel: Optional[NombreMateriaSimple] = None
-    
-    created_at: Optional[Any] = None
-    updated_at: Optional[Any] = None
+    # Agregamos las relaciones anidadas para la tabla de React
+    nombre: Optional[NombreMateriaSimple] = None
+    # Relación con el curso (ya trae Ciclo y Plan anidados)
+    curso: Optional[CursoCicloLectivo] = None
+    docente: Optional[Entidad] = None
 
     class Config:
         from_attributes = True
  
+
+
+   
+    

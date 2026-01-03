@@ -26,47 +26,21 @@ def get_db():
     finally:
         db.close()
 
-# Aquí moverás todos los endpoints de docentes de main.py
 #   # ==================== ENDPOINTS DOCENTES ====================
 #   
 @router.get("/", response_model=list[DocenteResponse])
 async def get_docentes(db: Session = Depends(get_db)):
-    
-    print("\n" + "="*60)
-    print("ENDPOINT DE DOCENTES EJECUTÁNDOSE CORRECTAMENTE")
-    print("="*60)
-    
-    # 1. Información de conexión y tabla
-    print(f"Base de datos conectada → {db.bind.url}")
-    print(f"Tabla usada → {EntidadORM.__tablename__}")
-    print("-"*60)
 
-
-    # Buscamos entidades que tengan 'DOC' en sus tipos_entidad
+    # Buscamos entidades que no están eliminados y sean del tipo DOCENTE
     docentes_db = db.query(EntidadORM).filter(
-        # Buscar entidades que tengan un tipo relacionado cuyo nombre sea ALUMNO".
         EntidadORM.tipo_entidad.has(tipo_entidad="DOCENTE"),
         EntidadORM.apellido != "",
         EntidadORM.deleted_at.is_(None)
         
     ).all()
-    
-    # Mapeamos a DocentesResponse
-    docentes = []
-    for doc in docentes_db:
-        docentes.append(DocenteResponse(
-            id=doc.id_entidad,
-            name=f"{doc.apellido}, {doc.nombre}".strip(),
-            nombre=doc.nombre,       # Asignamos nombre
-            apellido=doc.apellido,   # Asignamos apellido
-            dni=doc.dni or 0,          # El "or 0" salva el error si es NULL
-            fec_nac=doc.fec_nac,     # Asignamos fecha de nacimiento
-            email=doc.email,
-            domicilio=doc.domicilio,
-            localidad=doc.localidad or "-", 
-            telefono=doc.telefono
-        ))
-    return docentes
+
+    return docentes_db
+
 
 @router.get("/{id}", response_model=DocenteResponse)
 async def get_docente(id: int, db: Session = Depends(get_db)):
