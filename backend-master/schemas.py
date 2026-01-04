@@ -325,6 +325,18 @@ class PlanillaCalificacionesResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# Esquema para Upsert de notas en cagra de notas
+class NotaUpsert(BaseModel):
+    id_alumno: int
+    id_materia: int
+    id_tipo_nota: int
+    valor: Optional[float] = None
+    # Campos adicionales
+    id_ciclo_lectivo: Optional[int] = None
+    id_curso: Optional[int] = None
+    id_periodo: Optional[int] = None
+    id_entidad_carga: Optional[int] = None  # <--- ID del usuario que carga (docente logueado)
+
 
 # ----------------------------------------------------
 #   === Esquema para Plan === 

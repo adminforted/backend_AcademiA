@@ -72,7 +72,7 @@ class User(Base):
         nullable=False
     )
     
-    # 🚨 RELACIÓN 1: ROL DEL SISTEMA (la que buscamos para el 403)
+    # 🚨 RELACIÓN ROL DEL SISTEMA
     rol_sistema_obj = relationship(
         "TipoRolSistema", 
         back_populates="usuarios_con_rol_sistema",
@@ -96,7 +96,6 @@ class TipoRolSistema(Base): # <--- Nuevo nombre de clase
     __tablename__ = "t_tipo_roles_usuarios"
 
     id_tipo_roles_usuarios = Column(Integer, primary_key=True, nullable=False, index=True)
-    # ESTE ES EL CAMPO QUE BUSCAMOS: 'ADMIN_SISTEMA', 'ALUMNO_APP', etc.
     tipo_roles_usuarios = Column(String(20), nullable=False, unique=True) 
     
     # Relación inversa a User
