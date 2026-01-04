@@ -338,6 +338,41 @@ class NotaUpsert(BaseModel):
     id_entidad_carga: Optional[int] = None  # <--- ID del usuario que carga (docente logueado)
 
 
+
+# ----------------------------------------------------
+#   === Esquema para Inasistencias === 
+# ----------------------------------------------------
+
+# Esquema Cimple, para relaiones
+class InasistenciaSimple(BaseModel):
+    id_inasistencia: int
+
+    class Config:
+        from_attributes = True
+
+# Esquema Base, para el detalle individual de cada inasistencia
+# Representa inasistencia de UN SOLO DIA
+class InasistenciaBase(BaseModel):
+    date: str
+    type: str
+    value: float
+    justified: bool
+    reason: str
+
+    class Config:
+        from_attributes = True
+
+# Esquema para Respuesta.
+# Representa una lista de inasistencias (lista de las InasistenciaBase)
+class InasistenciaResponse(BaseModel):
+    totalInasistencia: float
+    totalInasistenciaJustif: float
+    # Definimos que detailedRecords es una LISTA de objetos InasistenciaBase
+    detailedRecords: List[InasistenciaBase]
+
+    class Config:
+        from_attributes = True
+
 # ----------------------------------------------------
 #   === Esquema para Plan === 
 # ----------------------------------------------------

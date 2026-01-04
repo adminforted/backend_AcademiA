@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 import crud
 import auth
 
-from Routes import  routes_docentes, attendance_estudiantes
+from Routes import  routes_docentes, routes_inasistencias
 
 from Routes.routes_materias import router as materias_router
 from Routes.routes_periodos import router as periodos_router
@@ -23,7 +23,6 @@ from Routes.routes_ciclos import router as router_ciclos  # Para traer los ciclo
 from Routes.routes_cursos import router as router_cursos  # Para traer los cursos
 from Routes.routes_personal import router as router_personal 
 from Routes.routes_cursos import router as router_cursos  # Para traer los cursoscursos
-
 
 from auth import send_email, get_password_hash, generate_token
 
@@ -91,7 +90,7 @@ app.include_router(
 
 app.include_router(notas_router, prefix="/api", tags=["Notas"])
 app.include_router(routes_docentes.router, prefix="/api/docentes", tags=["Docentes"]) 
-app.include_router(attendance_estudiantes.router, prefix="/api", tags=["Asistencias"])
+app.include_router(routes_inasistencias.router, prefix="/api", tags=["Asistencias"])
 app.include_router(materias_router, prefix="/api/materias", tags=["Materias"])
 app.include_router(periodos_router, prefix="/api/periodos", tags=["Períodos"])
 # http://localhost:8000/api/cursos

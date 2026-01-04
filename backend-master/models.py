@@ -221,12 +221,10 @@ class Inasistencia(Base):
     fecha_inasistencia = Column(Date)
     id_tipo_inasistencia = Column(Integer, ForeignKey("t_tipo_inasistencia.id_tipo_inasistencia")) # Relación con Tipo de asistencia
     
-    # Relación (Magia de SQLAlchemy para acceder a .tipo_obj.valor)
+    # Relación (para acceder a .tipo_obj.valor)
     tipo_obj = relationship("TipoInasistencia") 
     justificada = Column(Boolean, default=False)
     motivo_inasistencia = Column(String(255))
-
-        # Ej: 1.0, 0.5
 
 
 # ----------------------------------------------------------------------------------
