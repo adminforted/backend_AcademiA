@@ -1,20 +1,21 @@
 # Routes/routes_estudiantes.py
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status 
 from sqlalchemy.orm import Session
 from database import localSession
+from typing import List
+
 from models import ( 
-    Entidad as EntidadORM, 
-    TipoEntidad,
-    NombreMateria, 
-    Materia, 
-    Inscripcion
+    Entidad as EntidadORM, TipoEntidad, NombreMateria,  Inscripcion,
+    CicloLectivo as CicloLectivoORM, Curso as CursoORM, Materia as MateriaORM, Nota as NotaORM
+
 )
 from schemas import (
     EstudianteResponse, 
     EstudianteCreate, 
     EstudianteUpdate,
-    UserAuthData # Para obtener el rol
+    UserAuthData, # Para obtener el rol
+    CicloLectivoSimple
 )
 
 from auth import get_current_user # Para obtener el usuario actual
@@ -69,7 +70,9 @@ async def get_estudiantes(
 
 
  
- 
+# # =====================================================
+#  GET - Obtener Datos de un estudiante por ID
+# =====================================================
 @router.get("/{id}", response_model=EstudianteResponse)
 async def get_estudiante(id: int, db: Session = Depends(get_db)):
      est = db.query(EntidadORM).filter(
@@ -179,8 +182,8 @@ async def delete_estudiante(id: int, db: Session = Depends(get_db)):
 
       # ==================== MATERIAS DE UN ESTUDIANTE ====================
 
-@router.get("/api/estudiantes/{estudiante_id}/materias")    # El prefijo /api/estudiantes/ ya se añade en main.py
-async def get_materias_por_estudiante(estudiante_id: int, 
+@router.get("/{estudiante_id}/materias")    # El prefijo /api/estudiantes/ ya se añade en main.py
+async def get_materias_por_estudiante(estudiante_id: int,
                                       db: Session = Depends(get_db),
                                       current_user: UserAuthData = Depends(get_current_user)): 
 
@@ -204,8 +207,8 @@ async def get_materias_por_estudiante(estudiante_id: int,
     # Consulta con joins naturales
     materias = (
         db.query(NombreMateria.nombre_materia)
-        .join(Inscripcion, Inscripcion.materia_id == Materia.id_materia)
-        .join(Materia, Materia.nombre_materia_id == NombreMateria.id_nombre_materia)
+        .join(Inscripcion, Inscripcion.materia_id == MateriaORM.id_materia)
+        .join(MateriaORM, MateriaORM.nombre_materia_id == NombreMateria.id_nombre_materia)
         .filter(
             Inscripcion.entidad_id == estudiante_id,
             Inscripcion.deleted_at.is_(None)
@@ -217,12 +220,37 @@ async def get_materias_por_estudiante(estudiante_id: int,
     # Devolver lista simple de diccionarios
     return [{"nombre_materia": m.nombre_materia} for m in materias]
 
-
-# Aquí van los endpoints:
-# @router.get("/{id}", ...)
-# @router.post("/", ...)
-# @router.put("/{id}", ...)
-# @router.delete("/{id}", ...)
-# @router.get("/{estudiante_id}/materias", ...)
-
 routes_estudiantes = router
+
+
+# ========================================================================
+#  GET - Obtener Ciclos Lectivos de un estudiante por ID
+#  Obtiene los ciclos lectivos donde un estudiante tiene notas registradas.
+# ========================================================================
+
+@router.get("/{id_entidad}/ciclos", response_model=List[CicloLectivoSimple])
+def get_ciclos_por_estudiante(id_entidad: int, db: Session = Depends(get_db)):
+    ciclos = (
+        db.query(
+            CicloLectivoORM.id_ciclo_lectivo,
+            CicloLectivoORM.nombre_ciclo_lectivo
+    )
+     # Unión Ciclo con Curso (join t_curso tc on tc.id_ciclo_lectivo = tcl.id_ciclo_lectivo)
+    .join(CursoORM, CursoORM.id_ciclo_lectivo == CicloLectivoORM.id_ciclo_lectivo) 
+     # Unión Materia con Curso (join t_materia tm on tm.id_curso = tc.id_curso)
+    .join(MateriaORM, MateriaORM.id_curso == CursoORM.id_curso) 
+     # Unión Nota con Materia (join t_nota tn on tm.id_materia = tn.id_materia)
+    .join(NotaORM, NotaORM.id_materia == MateriaORM.id_materia)
+     # Filtro por Alumno (where te.id_entidad = 36543219)
+    .filter(NotaORM.id_entidad_estudiante == id_entidad)
+      # Agrupar repetidos (GROUP BY tcl.nombre_ciclo_lectivo)   
+     .group_by(CicloLectivoORM.id_ciclo_lectivo, CicloLectivoORM.nombre_ciclo_lectivo)
+      # Comando de ejecución
+     .all() 
+    )
+
+    if not ciclos:
+        # Si no hay notas, devuelveolvemos lista vacía
+        return []
+
+    return ciclos

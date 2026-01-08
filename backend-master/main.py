@@ -19,10 +19,11 @@ from Routes.routes_materias import router as materias_router
 from Routes.routes_periodos import router as periodos_router
 from Routes.routes_estudiantes import router as routes_estudiantes
 from Routes.routes_notas import router as notas_router
+from Routes.routes_estudiantes_notas import router as routes_estudiantes_notas
 from Routes.routes_ciclos import router as router_ciclos  # Para traer los ciclos lectivos
 from Routes.routes_cursos import router as router_cursos  # Para traer los cursos
-from Routes.routes_personal import router as router_personal 
-from Routes.routes_cursos import router as router_cursos  # Para traer los cursoscursos
+from Routes.routes_personal import router as router_personal
+from Routes.routes_usuarios import router as router_usuarios
 
 from auth import send_email, get_password_hash, generate_token
 
@@ -99,6 +100,10 @@ app.include_router(router_cursos, prefix="/api")
 app.include_router(router_ciclos, prefix="/api")
 
 app.include_router(router_personal, prefix="/api")
+
+app.include_router(routes_estudiantes_notas, prefix="/api", tags=["Notas"])
+
+app.include_router(router_usuarios, prefix="/api/usuarios")
 
 
 

@@ -16,23 +16,6 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 
-# Definición del Modelo de la tabla tbl_tipo_entidad, que almacena los tipos de entidad (EST, DOC, CLI, etc.)
-class TipoEntidad(Base):
-    __tablename__ = "t_tipo_entidad"  # Nombre de la tabla
-
-    # Clave primaria, código del tipo de entidad. Es referenciada en Entidad.id_tipo_entidad
-    id_tipo_entidad = Column(Integer, primary_key=True, nullable=False, index=True)
-    
-    # Campo que contiene la etiqueta de texto ('ALU', 'DOC', 'ADMIN')
-    tipo_entidad = Column(String(50), nullable=True, unique=True) 
-     
-    # Fecha de creación
-    created_at = Column(DateTime, default=func.current_timestamp())
-    # Fecha de actualización
-    updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
-    # Fecha de eliminación lógica
-    deleted_at = Column(DateTime, nullable=True)
-
 # Modelo para la tabla t_usuarios, que almacena los datos de autenticación y el rol de la app
 class User(Base):
     __tablename__ = "t_usuarios"  # Nombre de la tabla
@@ -102,8 +85,28 @@ class TipoRolSistema(Base): # <--- Nuevo nombre de clase
     usuarios_con_rol_sistema = relationship("User", back_populates="rol_sistema_obj")
 
 
+#  ----------------  CLASE DE ENTIDADES DE NEGOCIO (Entidad)  ----------------------
+
 # ----------------------------------------------------------------------------------
-#  CLASE DE ENTIDADES DE NEGOCIO (Entidad)
+# MODELOS PARA TIPO DE ENTIDAD
+# ----------------------------------------------------------------------------------
+class TipoEntidad(Base):
+    __tablename__ = "t_tipo_entidad"  # Nombre de la tabla
+
+    # Clave primaria, código del tipo de entidad. Es referenciada en Entidad.id_tipo_entidad
+    id_tipo_entidad = Column(Integer, primary_key=True, nullable=False, index=True)
+    
+    # Campo que contiene la etiqueta de texto ('ALU', 'DOC', 'ADMIN')
+    tipo_entidad = Column(String(50), nullable=True, unique=True) 
+     
+    # Fecha de creación
+    created_at = Column(DateTime, default=func.current_timestamp())
+    # Fecha de actualización
+    updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+    # Fecha de eliminación lógica
+    deleted_at = Column(DateTime, nullable=True)
+
+# ----------------------------------------------------------------------------------
 # Modelo para la tabla t_entidad, que almacena datos de entidades (personas físicas)
 # ----------------------------------------------------------------------------------
 class Entidad(Base):
@@ -119,29 +122,17 @@ class Entidad(Base):
     # Tipos de entidad. Clave foránea. Columna que enlaza con t_tipo_entidad
     tipo_entidad = relationship("TipoEntidad")
 
-    # Domicilio
     domicilio = Column(String(200), nullable=True)
-    # Teléfono
     telefono = Column(String(50), nullable=True)
-    # Fecha de creación
     created_at = Column(DateTime, default=func.current_timestamp())
-    # Fecha de actualización
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
-    # Localidad
     localidad = Column(String(50), nullable=False)
-    # Nacionalidad
     nacionalidad = Column(String(50), nullable=False)
-    # Email de contacto
     email = Column(String(100), nullable=True)
-    # Celular
     cel = Column(String(50), nullable=True)
-    # DNI
     dni = Column(Integer, nullable=False)
-    # Legajo, específico para Estudiantes
     legajo = Column(String(50), nullable=True)
-    # Fecha de eliminación lógica
     deleted_at = Column(DateTime, nullable=True)
-    # CUIT, específico para PROV, nullable
     cuit = Column(String(11), nullable=True)
     
 
@@ -228,7 +219,7 @@ class Inasistencia(Base):
 
 
 # ----------------------------------------------------------------------------------
-# MODELOS PARA TIPOS Y PERIODOS (Necesarios para la FK de TNota)
+# MODELOS PARA PERIODOS
 # ----------------------------------------------------------------------------------
 
 # Modelo para la tabla t_periodo
@@ -242,12 +233,18 @@ class Periodo(Base):
     # created_at = Column(DateTime, default=func.current_timestamp())
     # updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
 
+# ----------------------------------------------------------------------------------
+# MODELOS PARA TIPO de Nota
+# ----------------------------------------------------------------------------------
+
 # Modelo para la tabla t_tipo_nota
 class TipoNota(Base):
     __tablename__ = "t_tipo_nota"
     
     id_tipo_nota = Column(Integer, primary_key=True, index=True, autoincrement=True)
     tipo_nota = Column(String(20), nullable=False) # Ej: "Calificación Normal", "Recuperatorio"
+    id_tipo_concepto = Column(Integer, ForeignKey("t_tipo_concepto.id_tipo_concepto"),nullable=False)
+    es_final = Column(Boolean, default=False)
 
 # ----------------------------------------------------------------------------------
 # MODELO ORM PRINCIPAL DE NOTAS

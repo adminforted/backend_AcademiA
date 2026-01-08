@@ -40,7 +40,9 @@ def crear_nota(nota: schemas.NotaCreate, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al registrar la nota: {str(e)}",
         )
-    
+
+
+
 # =====================================================
 #  GET - Obtener planilla de calificaciones
 # =====================================================
@@ -54,11 +56,15 @@ def obtener_acta_calificaciones(
 ):
     try:
         # Obtener Columnas (Encabezados)
-        columnas_query = (
-            db.query(models.TipoNota.id_tipo_nota, models.TipoNota.tipo_nota)
-            .order_by(models.TipoNota.id_tipo_nota)
-            .all()
-        )
+        columnas_query = db.query(
+            models.TipoNota
+            ).filter(
+                models.Nota.id_materia == materia_id,
+                models.TipoNota.es_final == 1
+            ).order_by(
+                models.TipoNota.id_tipo_nota
+            ).all()
+
         headers = [schemas.ColumnaHeader(id_tipo_nota=c.id_tipo_nota, label=c.tipo_nota) 
                    for c in columnas_query]
 
@@ -70,8 +76,6 @@ def obtener_acta_calificaciones(
          .filter(models.Nota.id_materia == materia_id)
          .all()
 )
-        
-
         # Identificar Estudiantes únicos a partir de las notas
         # Creamos un diccionario para no repetir alumnos
         estudiantes_map = {}
@@ -205,3 +209,79 @@ def upsert_nota(
             status_code=500, 
             detail=f"Error al guardar nota: {str(e)}"
         )
+    
+# =====================================================
+#  GET - Obtener Notas de materias de un estudiante
+# =====================================================
+
+# Recibe el estudiante_id y el ciclo_id, y trae todas las materias con sus notas
+@router.get("/informe-individual/{id_estudiante}", response_model=schemas.InformeAcademicoEstudianteResponse)
+def obtener_informe_notas_estudiante(
+    id_estudiante: int,
+    ciclo_id: int = Query(..., description="ID del ciclo lectivo"),
+    curso_id: int = Query(..., description="ID del curso"),
+    db: Session = Depends(get_db)
+):
+    try:
+        # 1. Obtener Columnas (Headers de tipos de nota)
+        tipos_nota = (
+            db.query(models.TipoNota)
+            .order_by(models.TipoNota.id_tipo_nota)
+            .all()
+)
+        headers = [
+            schemas.ColumnaHeader(id_tipo_nota=t.id_tipo_nota, label=t.tipo_nota)
+            for t in tipos_nota
+        ]
+
+        # 2. Obtener todas las notas del estudiante para este ciclo/curso
+        # Filtramos por id_entidad_estudiante
+        notas_existentes = (
+            db.query(models.Nota)
+            .join(models.Materia)
+            .filter(
+                models.Nota.id_entidad_estudiante == id_estudiante,
+                models.Materia.id_curso == curso_id # Filtramos por el curso indicado
+            )
+            .all()
+        )
+
+        # 3. Identificar las materias involucradas
+        # Mapeamos materias por ID para evitar duplicados
+        materias_query = (
+            db.query(models.Materia)
+            .options(joinedload(models.Materia.nombre)) # Trae el nombre junto con la materia
+            .filter(models.Materia.id_curso == curso_id)
+            .all()
+        )
+        
+        filas = []
+        for mat in materias_query:
+            # Filtramos las notas que pertenecen a esta materia específica
+            notas_de_materia = {n.id_tipo_nota: float(n.nota) for n in notas_existentes 
+                                if n.id_materia == mat.id_materia}
+            
+            # Mapeamos las calificaciones según los headers (id_tipo_nota)
+            calificaciones = {col.id_tipo_nota: notas_de_materia.get(col.id_tipo_nota) 
+                             for col in headers}
+
+            # Cálculo de promedio de la materia
+            notas_val = [v for v in calificaciones.values() if v is not None]
+            promedio = round(sum(notas_val) / len(notas_val), 2) if notas_val else None
+
+            filas.append(schemas.MateriaNotaRow(
+                id_materia=mat.id_materia,
+                # mat.nombre es la relación, mat.nombre.nombre_materia es el texto "Matemática"
+                nombre_materia=mat.nombre.nombre_materia,
+                calificaciones=calificaciones,
+                promedio=promedio,
+                definitiva=calificaciones.get(7) # ID 7 según tu lógica de "Definitiva"
+            ))
+
+        return schemas.InformeAcademicoEstudianteResponse(
+            columnas=headers,
+            filas=sorted(filas, key=lambda x: x.nombre_materia)
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar informe: {str(e)}")

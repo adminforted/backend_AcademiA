@@ -126,7 +126,7 @@ class PlanillaActaResponse(BaseModel):
 # -------------------------------------------------------------
 
 # =========================================================================
-# === ESQUEMAS PARA ENTIDADES ===
+# === ESQUEMAS PARA TIOS DE ENTIDADES ===
 # =========================================================================
 
 class TipoEntidad(BaseModel):
@@ -139,7 +139,18 @@ class TipoEntidad(BaseModel):
     class Config:
         from_attributes = True
 
-# Esquema para la tabla t_entidad 
+# =========================================================================
+# === ESQUEMAS PARA ENTIDADES ===
+# =========================================================================
+
+class EntidadSimple(BaseModel):
+    id_entidad: int             
+    nombre: str
+    apellido: str                  
+    
+    class Config:
+        from_attributes = True
+
 class Entidad(BaseModel):
     id_entidad: int             
     nombre: str                 
@@ -150,10 +161,37 @@ class Entidad(BaseModel):
     class Config:
         from_attributes = True
 
+class EntidadTipoResponse(BaseModel):
+    id_tipo_entidad: int
+    nombre: str
+    apellido: str                 
+
+    class Config:
+        from_attributes = True
+
+
+# ----------- Esquema con Tipo de Entidad Anidado ----------- 
+class EntidadTipoEntidad(EntidadTipoResponse):
+    # Usamos el esquema TipoEntidad para que traiga el objeto completo
+    tipo_entidad_rel: Optional[TipoEntidad] = None
+    
+    class Config:
+        from_attributes = True
+
+
 # =========================================================================
 # === ESQUEMAS PARA ESTUDIANTES (EstudiantesRoutes) ===
 # =========================================================================
 
+class EstudianteSimple(BaseModel):
+    id: int
+    nombre: str
+    apellido: str
+    
+    # En la clase que hace el response, se pone el Class Config
+    class Config:
+        from_attributes = True
+        
 class EstudianteBase(BaseModel):
     nombre: str
     apellido: str
@@ -337,6 +375,22 @@ class NotaUpsert(BaseModel):
     id_periodo: Optional[int] = None
     id_entidad_carga: Optional[int] = None  # <--- ID del usuario que carga (docente logueado)
 
+
+# Esquema para representa una materia con sus notas, mapeadas por tipo_nota
+class MateriaNotaRow(BaseModel):
+    id_materia: int
+    nombre_materia: str
+    calificaciones: Dict[int, Optional[float]] # {id_tipo_nota: valor}
+    promedio: Optional[float]
+    definitiva: Optional[float]
+
+# Esquema para respuesta final del endpoint, materia con sus notas
+class InformeAcademicoEstudianteResponse(BaseModel):
+    columnas: List[ColumnaHeader]
+    filas: List[MateriaNotaRow]
+
+    class Config:
+        from_attributes = True
 
 
 # ----------------------------------------------------
