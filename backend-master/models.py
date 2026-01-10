@@ -176,8 +176,10 @@ class NombreMateria(Base):
     # Para crear relacion bidireccional con Materia
     materias_vinculadas = relationship("Materia", back_populates="nombre") 
 
+# ----------------------------------------------------------------------------------
+# MODELOS PARA INSCRIPCIONES
+# ----------------------------------------------------------------------------------
 
-# Modelo para la tabla t_inscripciones
 class Inscripcion(Base):
     __tablename__ = "t_inscripciones"
     
@@ -186,10 +188,30 @@ class Inscripcion(Base):
     id_materia = Column(Integer, ForeignKey("t_materia.id_materia"), nullable=False)
     id_tipo_insc = Column(Integer, ForeignKey("t_tipo_inscripcion.id_tipo_insc"), nullable=False)
     fecha_insc = Column(Date, nullable=False)
+    id_ciclo_lectivo = Column(Integer, ForeignKey("t_ciclo_lectivo.id_ciclo_lectivo"), nullable=False)
+
+    # Timestamps
     created_at = Column(DateTime, default=func.current_timestamp())
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
     deleted_at = Column(DateTime, nullable=True)
 
+    # Relaciones (para que Pydantic pueda navegar entre las tablas anidadas )
+    # El nombre de la variable debe coincidir con el campo en InscripcionesResponse
+    estudiantes = relationship("Entidad") 
+    materia = relationship("Materia")
+    tipo_inscripcion = relationship("TipoInscripcion") 
+    ciclo_lectivo = relationship("CicloLectivo")       
+
+# ----------------------------------------------------------------------------------
+# MODELOS PARA TIPOS DE INSCRIPCIONES
+# ----------------------------------------------------------------------------------
+
+class TipoInscripcion(Base):
+    __tablename__ = "t_tipo_inscripcion"
+    
+    id_tipo_insc = Column(Integer, primary_key=True)
+    nombre_tipo_inc = Column(String(30))
+    
 # ----------------------------------------------------------------------------------
 # MODELOS PARA ASISTENCIAS
 # ----------------------------------------------------------------------------------
