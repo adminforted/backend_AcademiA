@@ -1,13 +1,15 @@
 # Routes/routes_estudiantes.py
 
 from fastapi import APIRouter, Depends, HTTPException, status 
-from sqlalchemy.orm import Session
+
+from sqlalchemy.orm import Session,joinedload
 from database import localSession
 from typing import List
 
 from models import ( 
     Entidad as EntidadORM, TipoEntidad, NombreMateria,  Inscripcion,
-    CicloLectivo as CicloLectivoORM, Curso as CursoORM, Materia as MateriaORM, Nota as NotaORM
+    CicloLectivo as CicloLectivoORM, Curso as CursoORM, Materia as MateriaORM, Nota as NotaORM,
+    Inscripcion as InscripcionORM
 
 )
 from schemas import (
@@ -15,7 +17,8 @@ from schemas import (
     EstudianteCreate, 
     EstudianteUpdate,
     UserAuthData, # Para obtener el rol
-    CicloLectivoSimple
+    CicloLectivoSimple,
+    MateriaResponse
 )
 
 from auth import get_current_user # Para obtener el usuario actual
@@ -180,7 +183,10 @@ async def delete_estudiante(id: int, db: Session = Depends(get_db)):
      return {"message": "Estudiante eliminado exitosamente"}
 
 
-      # ==================== MATERIAS DE UN ESTUDIANTE ====================
+# ========================================================================
+#  GET - Obtener Materias de un estudiante por ID
+#  Obtiene las Materias en las que ha tenido notas un estudiante.
+# ========================================================================
 
 @router.get("/{estudiante_id}/materias")    # El prefijo /api/estudiantes/ ya se añade en main.py
 async def get_materias_por_estudiante(estudiante_id: int,
@@ -220,7 +226,54 @@ async def get_materias_por_estudiante(estudiante_id: int,
     # Devolver lista simple de diccionarios
     return [{"nombre_materia": m.nombre_materia} for m in materias]
 
-routes_estudiantes = router
+
+
+# ========================================================================
+#  GET - Obtener Materias de un estudiante por ID y Ciclo Lectivo
+#  Obtiene las Materias de un ciclo lectivo en el que un estudiante se ha inscripto estudiante.
+# ========================================================================
+
+@router.get("/{id_ciclo}/{id_estudiante}/materias", response_model=List[MateriaResponse])    # El prefijo /api/estudiantes/ ya se añade en main.py
+async def get_materias_ciclo_por_estudiante(id_ciclo: int, id_estudiante: int,
+                                      db: Session = Depends(get_db),
+                                      current_user: UserAuthData = Depends(get_current_user)): 
+
+    # Lógica de Permisos (Solo el ADMIN o el PROPIO estudiante pueden ver sus materias)
+    # rol_actual = current_user.tipo_rol.tipo_roles_usuarios
+    rol_actual = current_user.rol_sistema
+    if rol_actual not in ['ADMIN_SISTEMA', "DOCENTE_APP"] and current_user.id_entidad != id_estudiante:
+         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permisos para ver estas materias.")
+
+    # Verificar que exista y sea estudiante (tipo ALU)
+    estudiante = db.query(EntidadORM).filter(
+        EntidadORM.id_entidad == id_estudiante,
+        EntidadORM.tipos_entidad.contains("ALU"),
+        EntidadORM.deleted_at.is_(None)
+    ).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    # Consulta a la base de datos (usando SQL Alchemy)
+    # Buscamos en inscripciones, pero devolvemos los objetos 'materia'
+    inscripciones_db = (
+        db.query(InscripcionORM
+                 ).filter(
+                    InscripcionORM.id_entidad == id_estudiante,
+                    InscripcionORM.id_ciclo_lectivo == id_ciclo,
+                    InscripcionORM.deleted_at.is_(None)
+                ).options(
+                     # Cargamos las relaciones anidadas que pide la MateriaResponse
+                    joinedload(InscripcionORM.materia).joinedload(MateriaORM.nombre),
+                    joinedload(InscripcionORM.materia).joinedload(MateriaORM.curso),
+                    joinedload(InscripcionORM.materia).joinedload(MateriaORM.docente)
+                ).all()
+                )
+    #   Extraer solo los objetos MateriaORM de las inscripciones encontradas
+    materias_alu_ciclo = [ins.materia for ins in inscripciones_db if ins.materia]
+    
+    return materias_alu_ciclo
+
 
 
 # ========================================================================
@@ -254,3 +307,7 @@ def get_ciclos_por_estudiante(id_entidad: int, db: Session = Depends(get_db)):
         return []
 
     return ciclos
+
+
+
+routes_estudiantes = router

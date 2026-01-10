@@ -566,6 +566,14 @@ class CursoCicloLectivo(CursoSimple):
 #   === Esquema para Materias === 
 # ----------------------------------------------------
 
+# Materia simple, para relaciones
+class MateriaSimple(BaseModel):
+    id_materia: int
+    id_nombre_materia: int
+
+    class Config:
+        from_attributes = True
+
 # Por claridad, extrae el nombre de t_nombre_materia
 class NombreMateriaSimple(BaseModel):
     nombre_materia: str
@@ -592,9 +600,6 @@ class MateriaUpdate(BaseModel):
 # Para RESPONDER: se agregan los restantes datos de Base
 class MateriaResponse(MateriaBase):
     id_materia: int
-    id_nombre_materia: int
-    id_curso: int
-    id_entidad: int
 
     # --- CAMPOS CALCULADOS PARA LA TABLA ---
     @computed_field
@@ -604,7 +609,7 @@ class MateriaResponse(MateriaBase):
             return f"{self.docente.apellido}, {self.docente.nombre}"
         return "Sin asignar"
     
-    # Agregamos las relaciones anidadas para la tabla de React
+    # Agregamos las relaciones anidadas
     nombre: Optional[NombreMateriaSimple] = None
     # Relación con el curso (ya trae Ciclo y Plan anidados)
     curso: Optional[CursoCicloLectivo] = None
@@ -613,7 +618,62 @@ class MateriaResponse(MateriaBase):
     class Config:
         from_attributes = True
  
+# =========================================================================
+#   === Esquema para TIPOS DE INSCRIPCIONES. 
+# =========================================================================
 
+# Esquema simple, para relaiones
+class TiposInscripcionesSimple(BaseModel):
+    id_tipo_insc: int
+    nombre_tipo_insc: str
 
-   
-    
+    class Config:
+        from_attributes = True
+
+# =========================================================================
+#   === Esquema para INSCRIPCIONES. 
+# =========================================================================
+
+# Esquema simple, para relaiones
+class InscripcionesSimple(BaseModel):
+    id_inscripcion: int
+
+    class Config:
+        from_attributes = True
+
+# Esquema de Inscripciones Base (todos los campos básicos)
+class InscripcionesBase(BaseModel):
+    id_entidad: int # ID del Alumno
+    id_materia: int
+    id_tipo_insc: int 
+    fecha_insc: date
+    id_ciclo_lectivo: int
+
+# Para RESPONDER: los campos base + id.
+# Se incluyen las relaciones, ya que al responder se mandan los datos anidados
+class InscripcionesResponse(InscripcionesBase):
+    id_inscripcion: int
+
+    # Relaciones con otros esquemas
+
+    #   Los nombres (estudiantes, materia, etc) deben coincidir con los nombres 
+    #   de las relationship del modelo "Inscripcion" (en models.py)
+    estudiantes: Optional[EstudianteSimple] = None
+    materia: Optional[MateriaSimple] = None
+    tipo_inscripcion: Optional[TiposInscripcionesSimple] = None
+    ciclo_lectivo: Optional[CicloLectivoSimple] = None
+
+# Para CREAR (Solo lo que está Base)
+class InscripcionesCreate(InscripcionesBase):
+    pass 
+
+# Para Actualizar. Heredamos de BaseModel para que sea todo opcional
+class InscripcionesUpdate(BaseModel):
+    id_entidad: Optional[int] = None # ID del Alumno
+    id_materia: Optional[int] = None
+    id_tipo_inc: Optional[int] = None 
+    fecha_insc: Optional[date] = None
+    id_ciclo_lectivo: Optional[int] = None
+
+    class Config:
+        from_attributes = True
