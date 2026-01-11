@@ -244,10 +244,10 @@ async def get_materias_ciclo_por_estudiante(id_ciclo: int, id_estudiante: int,
     if rol_actual not in ['ADMIN_SISTEMA', "DOCENTE_APP"] and current_user.id_entidad != id_estudiante:
          raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permisos para ver estas materias.")
 
-    # Verificar que exista y sea estudiante (tipo ALU)
+    # Verificar que exista y sea estudiante
     estudiante = db.query(EntidadORM).filter(
         EntidadORM.id_entidad == id_estudiante,
-        EntidadORM.tipos_entidad.contains("ALU"),
+        EntidadORM.id_tipo_entidad == 1,
         EntidadORM.deleted_at.is_(None)
     ).first()
     
