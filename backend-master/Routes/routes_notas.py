@@ -285,3 +285,66 @@ def obtener_informe_notas_estudiante(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar informe: {str(e)}")
+    
+
+# ====================================================================================
+#  GET - Obtener Notas de Cuatrimestres y Rec de un estudiante, materia y curso
+# ====================================================================================
+@router.get("/estudiante-materia-curso/{estudiante_id}/{materia_id}/{curso_id}", 
+            response_model=list[schemas.NotaDetalle])   # Se pone list, porque se espera una lista (array)
+def get_notas_estudiante_materia(
+    estudiante_id: int, 
+    materia_id: int, 
+    curso_id: int,
+    db: Session = Depends(get_db)
+):
+    return db.query(
+        # 1. Traigo del models sólo los campos que voy a mandar en el JSON
+        models.TipoNota.tipo_nota,
+        models.Nota.nota,
+        models.Nota.id_periodo,
+    # 2. Defino las relaciones entre los MODELOS y 3. Establezco filtros y condiciones
+    ).join(models.TipoNota,
+           models.Nota.id_tipo_nota == models.TipoNota.id_tipo_nota)\
+     .join(models.Materia, 
+           models.Materia.id_materia == models.Nota.id_materia)\
+    .join(models.TipoConcepto, 
+           models.TipoConcepto.id_tipo_concepto == models.TipoNota.id_tipo_concepto)\
+    .filter(        
+        models.Nota.id_entidad_estudiante == estudiante_id,
+        models.Nota.id_materia == materia_id,
+        models.Materia.id_curso == curso_id,
+        models.TipoNota.id_tipo_concepto.in_([2, 3, 4])
+    ).all()
+
+# ==============================================================================================
+#  GET - Obtener Notas de Exámen y T. Práctico de un Trimestre, estudiante, materia y curso.
+# Datos para subjectEvaluationHistoryDetail
+# ==============================================================================================
+@router.get("/estudiante-materia-curso-tnota/{estudiante_id}/{materia_id}/{curso_id}/{periodo_id}", 
+            response_model=list[schemas.NotaTipoDetalle])   # Se pone list, porque se espera una lista (array)
+def get_notas_estudiante_materia_Tipo(
+    estudiante_id: int, 
+    materia_id: int, 
+    curso_id: int,
+    periodo_id:int,
+
+    db: Session = Depends(get_db)
+):
+    return db.query(
+        # 1. Traigo del models sólo los campos que voy a mandar en el JSON
+        models.Nota.fecha_carga,
+        models.TipoNota.tipo_nota,
+        models.Nota.nota,
+    # 2. Defino las relaciones entre los MODELOS y 3. Establezco filtros y condiciones
+   ).join(models.Materia, 
+           models.Materia.id_materia == models.Nota.id_materia
+    ).join(models.TipoNota,
+           models.Nota.id_tipo_nota == models.TipoNota.id_tipo_nota
+    ).filter(        
+        models.Nota.id_entidad_estudiante == estudiante_id,
+        models.Nota.id_materia == materia_id,
+        models.Materia.id_curso == curso_id,
+        models.Nota.id_periodo == periodo_id,
+        models.Nota.id_tipo_nota.in_([1, 8]),
+    ).all()

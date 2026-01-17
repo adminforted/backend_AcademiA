@@ -256,6 +256,17 @@ class Periodo(Base):
     # updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 # ----------------------------------------------------------------------------------
+# MODELOS PARA TIPO DE CONCEPTO
+# ----------------------------------------------------------------------------------
+
+# Modelo para la tabla t_tipo_concepto
+class TipoConcepto(Base):
+    __tablename__ = "t_tipo_concepto"
+
+    id_tipo_concepto = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    tipo_concepto = Column(String(50), nullable=False)
+
+# ----------------------------------------------------------------------------------
 # MODELOS PARA TIPO de Nota
 # ----------------------------------------------------------------------------------
 

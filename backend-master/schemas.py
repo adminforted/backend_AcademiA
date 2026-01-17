@@ -8,7 +8,7 @@
 
 
 # Importamos las clases y tipos necesarios de Pydantic para definir esquemas
-from pydantic import BaseModel, EmailStr, Field, computed_field
+from pydantic import BaseModel, EmailStr, Field, computed_field, field_serializer
 from typing import Optional, List, Any, Dict
 from datetime import date, datetime
 
@@ -392,12 +392,41 @@ class InformeAcademicoEstudianteResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# Esquema para enviar t_tipo_nota.tipo_nota y t_nota.nota. 
+# Se usa en SubjectCars, para pasasr los datos a SubjectEvaluationHistory
+class NotaDetalle(BaseModel):
+    tipo_nota: str
+    # fecha_carga: Optional[date]
+    nota: float
+    id_periodo: int
+
+    class Config:
+        from_attributes = True
+
+
+# Esquema para enviar t_tipo_nota.tipo_nota, t_nota.nota y t_nota.fecha_carga formateado
+# Se usa en SubjectEvaluationHistory, para pasasr los datos a SubjectEvaluationHistoryDetail
+class NotaTipoDetalle(BaseModel):
+    tipo_nota: str
+    fecha_carga: Optional[date]
+    nota: float
+
+    # Decorador: le dice a FastAPI cómo transformar el campo fecha_carga al enviarlo
+    @field_serializer('fecha_carga')
+    def serialize_dt(self, fecha_carga: date):
+        # %d/%m/%y genera dd/mm/aa (ej: 15/01/26)
+        # Si prefieres el año con 4 números (2026), usa %Y en mayúscula
+        return fecha_carga.strftime('%d/%m/%Y')
+
+    class Config:
+        from_attributes = True
+
 
 # ----------------------------------------------------
 #   === Esquema para Inasistencias === 
 # ----------------------------------------------------
 
-# Esquema Cimple, para relaiones
+# Esquema simple, para relaiones
 class InasistenciaSimple(BaseModel):
     id_inasistencia: int
 
