@@ -13,9 +13,9 @@ from typing import Optional, List, Any, Dict
 from datetime import date, datetime
 
 
-# -------------------------
+# =========================================================================
 # NUEVOS ESQUEMAS DE ROL
-# -------------------------
+# =========================================================================
 
 class TipoRolResponse(BaseModel):
     tipo_entidad: str = Field(alias="cod_tipo_usuario")
@@ -24,9 +24,9 @@ class TipoRolResponse(BaseModel):
         populate_by_name = True
 
 
-# -------------------------------------------------------------
+# =========================================================================
 # ESQUEMAS CENTRALES DE AUTENTICACIÓN 
-# -------------------------------------------------------------
+# =========================================================================
 
 # 1. Esquema de Entrada para Login (Lo que el cliente envía)
 class UserLogin(BaseModel):
@@ -64,9 +64,9 @@ class Token(BaseModel):
     # Incluimos los datos de usuario para que el frontend sepa quién es y qué rol tiene
     user: UserAuthData 
 
-# -------------------------------------------------------------
+# =========================================================================
 # ESQUEMAS DE GESTIÓN DE CUENTAS
-# -------------------------------------------------------------
+# =========================================================================
 
 # Esquema para crear un nuevo usuario
 class UserCreate(BaseModel):
@@ -99,9 +99,9 @@ class ResetPasswordRequest(BaseModel):
 class EmailVerifyRequest(BaseModel):
     token: str
 
-# -------------------------------------------------------------
+# =========================================================================
 # ESQUEMAS DE TABLA
-# -------------------------------------------------------------
+# =========================================================================
 
 class ColumnaHeader(BaseModel):
     id_tipo_nota: int
@@ -121,9 +121,9 @@ class PlanillaActaResponse(BaseModel):
     filas: List[AlumnoNotaRow]
 
 
-# -------------------------------------------------------------
-# ESQUEMAS DE NEGOCIO 
-# -------------------------------------------------------------
+# =========================================================================
+#                       ESQUEMAS DE NEGOCIO 
+# =========================================================================
 
 # =========================================================================
 # === ESQUEMAS PARA TIOS DE ENTIDADES ===
@@ -248,26 +248,29 @@ class DocenteBase(BaseModel):
     nacionalidad: str= "No especificada"
     telefono: Optional[str] = "-"
     cel: str = "-"
+    created_at: datetime
 
 
 # Para CREAR
 class DocenteCreate(DocenteBase):
     pass
 
-# Para ACTUALIZAR: Flexibilidad total heredando de BaseModel
+# Para ACTUALIZAR: Flexibilidad total heredando de BaseModel, haciendo todo opcional
 class DocenteUpdate(BaseModel):
      nombre: Optional[str] = None
      apellido: Optional[str] = None
+     fec_nac: Optional[date] = None 
+     telefono: Optional[str] = None
      domicilio: Optional[str] = None
      localidad: Optional[str] = None
      nacionalidad: Optional[str] = None
+     email: Optional[EmailStr] = None 
      cel: Optional[str] = None
+     created_at: Optional[datetime]
 
 # Para RESPONDER (Salida de API)
 class DocenteResponse(DocenteBase):
     id_entidad: int # Usamos el nombre real de la PK en t_entidad
-    nombre: str
-    
    
     # Campos calculados
     @computed_field

@@ -54,7 +54,7 @@ async def get_docente(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Docente no encontrado")
     
     return DocenteResponse(
-        id=doc.id_entidad,
+        id_entidad=doc.id_entidad,
         name=f"{doc.apellido}, {doc.nombre}".strip(),
         nombre=doc.nombre,
         apellido=doc.apellido,
@@ -64,74 +64,70 @@ async def get_docente(id: int, db: Session = Depends(get_db)):
         telefono=doc.telefono
     )
 
-@router.post("/", response_model=DocenteResponse)
-async def create_docente(docente: DocenteCreate, db: Session = Depends(get_db)):
 
+# =====================================================
+#  POST - Nuevo Docente
+# =====================================================
+
+@router.post("/", response_model=DocenteResponse, status_code=status.HTTP_201_CREATED)
+async def create_docente(docente: DocenteCreate, db: Session = Depends(get_db)):
 
     # Verificar si el email ya existe (solo si se proporciona)
     if docente.email and db.query(EntidadORM).filter(EntidadORM.email == docente.email).first():
         raise HTTPException(status_code=400, detail="El email ya está registrado")
 
-    # La fecha 'created_at' viene del formulario (editada o no por el usuario)
-    # La fecha 'updated_at' la generamos nosotros ahora mismo
     ahora = datetime.now() # Fecha y Hora actual
 
+     # Creamos el objeto usando el diccionario del esquema.
+     # Los nombres de los campos a insertar en la base de datos son los definidos EN LA CLASE (DocenteCreate).
     new_docente = EntidadORM(
-        nombre=docente.nombre.strip(),
-        apellido=docente.apellido.strip(),
-        email=docente.email,
-        dni=docente.dni or 0,  
-        fec_nac=docente.fec_nac,
-        domicilio=docente.domicilio,
-        localidad=docente.localidad,
-        nacionalidad=docente.nacionalidad,
-        telefono=docente.telefono,
-        cel=docente.cel  or 0,
-        id_tipo_entidad=2,
-        # Si el front manda solo fecha, SQLAlchemy lo convierte a datetime
-        # pero updated_at siempre será "ahora"
-        updated_at=ahora
+        # Usamos el método Pydantic "model_dump"para convertir una instancia del modelo en un diccionario Python.
+        # El ** hace que sea como escribir nombre=docente.nombre, etc. par todos los campos
+        **docente.model_dump(),  
+         id_tipo_entidad=2, # Tipo DOCENTE
+        # Si el front manda solo fecha SQLAlchemy lo convierte a datetime, sinó es "ahora"
+        updated_at=ahora,
     )
     
     db.add(new_docente)
     db.commit()
     db.refresh(new_docente)
     
-    return DocenteResponse(
-        id=new_docente.id_entidad,
-        name=f"{new_docente.apellido} {new_docente.nombre}".strip(),
-        nombre=new_docente.nombre,
-        apellido=new_docente.apellido,
-        fec_nac=new_docente.fec_nac,
-        email=new_docente.email,
-        domicilio=new_docente.domicilio,
-        telefono=new_docente.telefono
-    )
+    # IMPORTANTE: Retornamos directamente el objeso. FastAPI usará el esquema DocenteResponse para el mapeo.
+    return new_docente
 
-@router.put("/{id}", response_model=DocenteResponse)
-async def update_docente(id: int, docente: DocenteUpdate, db: Session = Depends(get_db)):
-    db_docente = db.query(EntidadORM).filter(EntidadORM.id_entidad == id).first()
+
+# =====================================================
+#  PUT - Editar un Docente
+# =====================================================
+
+@router.put("/{id_entidad}", response_model=DocenteResponse)
+async def update_docente(id_entidad: int, docente: DocenteUpdate, db: Session = Depends(get_db)):
+    # Buscamos por id_entidad
+    db_docente = db.query(EntidadORM).filter(EntidadORM.id_entidad == id_entidad).first()
     
     if not db_docente:
         raise HTTPException(status_code=404, detail="Docente no encontrado")
     
-    # Actualizar solo los campos que vengan
-    if docente.nombre is not None:
-        db_docente.nombre= docente.nombre.strip()
-    if docente.apellido is not None:
-        db_docente.apellido= docente.apellido.strip()
-    if docente.email is not None:
-        db_docente.email = docente.email
-    if docente.fec_nac is not None:
-        db_docente.fec_nac = docente.fec_nac
-    if docente.domicilio is not None:
-        db_docente.domicilio = docente.domicilio
-    if docente.telefono is not None:
-        db_docente.telefono = docente.telefono
+    # Lógica Dinámica: exclude_unset=True asegura que solo se procesen los campos que el frontend REALMENTE envia.
+    update_data = docente.model_dump(exclude_unset=True)
+
+    # En lugar de hacer if manuales para verificar decada campo si hay valores nuevos para updatear, 
+    # usamos un bucle que actualiza solo lo que el usuario envió.
+    for key, value in update_data.items():
+        if value is not None:
+            # Seteamos el valor dinámicamente en el objeto de la base de datos
+            setattr(db_docente, key, value.strip() if isinstance(value, str) else value)
+        
+    db_docente.updated_at = datetime.now()
         
     db.commit()
     db.refresh(db_docente)
     
+    # Finalmente, retornamos el objeto actualizado
+    return db_docente
+
+'''
     return DocenteResponse(
         id=db_docente.id_entidad,
         name=f"{db_docente.nombre} {db_docente.apellido}".strip(),
@@ -142,6 +138,8 @@ async def update_docente(id: int, docente: DocenteUpdate, db: Session = Depends(
         domicilio=db_docente.domicilio,
         telefono=db_docente.telefono
     )
+'''
+
 
 @router.delete("/{id}")
 async def delete_docente(id: int, db: Session = Depends(get_db)):
