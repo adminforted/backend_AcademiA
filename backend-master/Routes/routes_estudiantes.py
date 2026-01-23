@@ -60,7 +60,7 @@ async def get_estudiantes(
     # 3. Mapeo y entrega de datos
     return [
         EstudianteResponse(
-            id=est.id_entidad,
+            id_entidad=est.id_entidad,
             name=f"{est.apellido}, {est.nombre}".strip(),
             nombre=est.nombre,
             apellido=est.apellido,
@@ -88,7 +88,7 @@ async def get_estudiante(id: int, db: Session = Depends(get_db)):
          raise HTTPException(status_code=404, detail="Estudiante no encontrado")
      
      return EstudianteResponse(
-         id=est.id_entidad,
+         id_entidad=est.id_entidad,
          name=f"{est.apellido}, {est.nombre}".strip(),
          nombre=est.nombre,
          apellido=est.apellido,
@@ -125,7 +125,7 @@ async def create_estudiante(estudiante: EstudianteCreate, db: Session = Depends(
      db.refresh(new_estudiante)
      
      return EstudianteResponse(
-         id=new_estudiante.id_entidad,
+         id_entidad=new_estudiante.id_entidad,
          name=f"{new_estudiante.apellido} {new_estudiante.nombre}".strip(),
          nombre=new_estudiante.nombre,
          apellido=new_estudiante.apellido,
@@ -160,7 +160,7 @@ async def update_estudiante(id: int, estudiante: EstudianteUpdate, db: Session =
      db.refresh(db_estudiante)
      
      return EstudianteResponse(
-         id=db_estudiante.id_entidad,
+         id_entidad=db_estudiante.id_entidad,
          name=f"{db_estudiante.nombre} {db_estudiante.apellido}".strip(),
          nombre=db_estudiante.nombre,
          apellido=db_estudiante.apellido,

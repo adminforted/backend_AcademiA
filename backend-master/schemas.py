@@ -184,7 +184,7 @@ class EntidadTipoEntidad(EntidadTipoResponse):
 # =========================================================================
 
 class EstudianteSimple(BaseModel):
-    id: int
+    id_entidad: int
     nombre: str
     apellido: str
     
@@ -210,7 +210,7 @@ class EstudianteUpdate(EstudianteBase):
     
 
 class EstudianteResponse(EstudianteBase):
-    id: int
+    id_entidad: int
     name: str # Campo calculado: "Apellido, Nombre"
     
     # En la clase que hace el response, se pone el Class Config
