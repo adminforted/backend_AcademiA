@@ -1,7 +1,8 @@
 # backend-master/Routes/routes_notas.py
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, joinedload 
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from typing import List
 
 # Importaciones CLAVE:
@@ -285,7 +286,41 @@ def obtener_informe_notas_estudiante(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar informe: {str(e)}")
+
+# =============================================================
+#  GET - Obtener NOTAS FINALES de una materia de estudiantes
+# =============================================================
+@router.get("/curso/{id_curso}/materia/{id_materia}/notas-final", response_model=list[schemas.NotaEstudianteResponse])
+async def get_notas_finales_estudiantes(
+    id_curso: int, 
+    id_materia: int, 
+    db: Session = Depends(get_db)
+):
+    notas = (
+        db.query(
+            models.Nota.id_entidad_estudiante,
+            # Concatenamos Nombre y Apellido para el campo 'nombre_entidad'
+            # Para mostrar solo el campo nombre: models.Entidad.nombre.label('nombre_entidad')
+            func.concat(
+                (models.Entidad.apellido), ", ", (models.Entidad.nombre))
+                .label('alumno'), 
+            models.Nota.nota
+        )
+        # Join con Entidad para obtener el nombre del alumno
+        .join(models.Nota.estudiante)
+        # Join con Materia para validar que sea del curso correcto (por seguridad)
+        .join(models.Nota.materia)
+        # Definimos condiciones y validaciones
+        .filter(
+            models.Materia.id_curso == id_curso,       # Validamos el curso
+            models.Nota.id_materia == id_materia,      # Filtramos la materia
+            models.Nota.id_tipo_nota == 7              # Filtro para Nota Final
+        )
+        .all()
+    )
     
+    return notas
+
 
 # ====================================================================================
 #  GET - Obtener Notas de Cuatrimestres y Rec de un estudiante, materia y curso

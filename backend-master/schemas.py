@@ -350,6 +350,15 @@ class NotaResponse(NotaCreate):
     class Config:
         from_attributes = True
 
+# Esquema para Respuesta Notas de Estudiantes
+class NotaEstudianteResponse(BaseModel):
+    id_entidad_estudiante: int
+    alumno: str
+    nota: float
+
+    class Config:
+        from_attributes = True
+
 # Esquema para Planilla de calificaciones
 class PlanillaCalificacionesResponse(BaseModel):
     alumno: EstudianteResponse
@@ -646,6 +655,14 @@ class MateriaResponse(MateriaBase):
     # Relación con el curso (ya trae Ciclo y Plan anidados)
     curso: Optional[CursoCicloLectivo] = None
     docente: Optional[Entidad] = None
+
+    class Config:
+        from_attributes = True
+        
+# Materias sólo id y nombre. 
+class MateriaSimpleResponse(BaseModel):
+    id_materia: int
+    nombre_materia: str
 
     class Config:
         from_attributes = True

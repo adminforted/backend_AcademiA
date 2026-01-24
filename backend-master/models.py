@@ -15,8 +15,9 @@ from sqlalchemy.ext.declarative import declarative_base
 # Definimos la base para todos los modelos ORM, que se usarán para mapear tablas
 Base = declarative_base()
 
-
-# Modelo para la tabla t_usuarios, que almacena los datos de autenticación y el rol de la app
+# ----------------------------------------------------------------------------------
+# Modelo para la tabla t_usuarios. Almacena datos de autenticación y rol de la app
+# ----------------------------------------------------------------------------------
 class User(Base):
     __tablename__ = "t_usuarios"  # Nombre de la tabla
     

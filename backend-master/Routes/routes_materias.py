@@ -14,7 +14,10 @@ def get_db():
     finally:
         db.close()
 
-#   ---- Traer todos los datos de todas las materias   ------
+# ========================================================================
+#  Obtener todaslas materias
+# ========================================================================
+
 @router.get("/", response_model=list[schemas.MateriaResponse])
 async def get_materias(db: Session = Depends(get_db)):
     #   Traemos el objeto completo con carga ansiosa (Eager Loading)
@@ -40,7 +43,11 @@ async def get_materias(db: Session = Depends(get_db)):
     # Pydantic se encargará de mapear los IDs y el nombre_rel automáticamente
     return materias
 
-#   ---- Traer las materias e info relacionada con curso, ciclo, etc, para tabla   ------
+
+# ========================================================================
+#  Obtener todaslas materias e info. Para tablas
+# ========================================================================
+
 @router.get("/tabla/", response_model=list[schemas.MateriaResponse])
 def obtener_materias_tabla(db: Session = Depends(get_db)):
     return db.query(models.Materia).options(
@@ -52,7 +59,12 @@ def obtener_materias_tabla(db: Session = Depends(get_db)):
     ).all()
 
 
-#   ---- Traer las materias de un curso en particular   ------
+# ========================================================================
+#  Obtener las materias de un curso en particular
+#   Tiene un problema: sólo hace joinedload(models.Materia.nombre), con lo cual ejecuta
+#   una consulta a la base por cada materia.
+# ========================================================================
+
 @router.get("/curso/{id_curso}", response_model=list[schemas.MateriaResponse])
 async def get_materias_curso(id_curso: int, db: Session = Depends(get_db)):
     materias = (
@@ -62,9 +74,30 @@ async def get_materias_curso(id_curso: int, db: Session = Depends(get_db)):
         .all()
     )
     
-    if materias is None:
+    # Este if en realidad no hace falta, porque SQL Alchemy solo devuelve [] si no encuentra registros
+    if materias is None:    
         return []
-
+    
     return materias
-
 materias_router = router 
+
+# ========================================================================
+#  Obtener sólo id y nombre de las materias de un curso en particular
+# ========================================================================
+
+@router.get("/curso/{id_curso}/simple", response_model=list[schemas.MateriaSimpleResponse])
+async def get_materias_curso_simple(id_curso: int, db: Session = Depends(get_db)):
+    # Seleccionamos COLUMNAS ESPECÍFICAS. Devuelve una lista de tuplas con nombre.
+    materias = (
+        db.query(
+            models.Materia.id_materia,                  # ID de la tabla Materia
+            models.NombreMateria.nombre_materia         # Nombre, de la tabla t_npmbre_materia
+        )
+        .join(models.Materia.nombre)                    # Join entre las dos tablas
+        .filter(models.Materia.id_curso == id_curso)    # Filtramos por la columna del curso
+        .all()
+    )
+    
+    return materias
+materias_router = router 
+
