@@ -97,6 +97,38 @@ async def get_estudiante(id: int, db: Session = Depends(get_db)):
          domicilio=est.domicilio,
          telefono=est.telefono
      )
+     
+# # =====================================================
+#  GET - Obtener Datos de un estudiante por Curso
+# =====================================================
+
+@router.get("/curso/{id_curso}", response_model=List[EstudianteResponse])
+async def get_estudiantes_por_curso(id_curso: int, db: Session = Depends(get_db)):
+     estCurso = db.query(EntidadORM
+         ).join(InscripcionORM, InscripcionORM.id_entidad == EntidadORM.id_entidad
+         ).join(CicloLectivoORM, CicloLectivoORM.id_ciclo_lectivo == InscripcionORM.id_ciclo_lectivo
+         ).join(CursoORM, CursoORM.id_ciclo_lectivo  ==  CicloLectivoORM.id_ciclo_lectivo
+         ).filter( CursoORM.id_curso == id_curso,
+         InscripcionORM.deleted_at.is_(None)
+         ).all() 
+                
+     return [
+        EstudianteResponse(
+            id_entidad=est.id_entidad,
+            # .strip() elimina espacios en blanco al inicio/final
+            name=f"{est.apellido}, {est.nombre}".strip(), 
+            nombre=est.nombre,
+            apellido=est.apellido,
+            fec_nac=est.fec_nac,
+            email=est.email,
+            domicilio=est.domicilio,
+            telefono=est.telefono,
+            )
+        for est in estCurso
+        ]
+ 
+ 
+ 
  
 @router.post("/", response_model=EstudianteResponse)
 async def create_estudiante(estudiante: EstudianteCreate, db: Session = Depends(get_db)):
